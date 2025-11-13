@@ -13,12 +13,22 @@
   
   // Adjustable data
   let deviceData = { mobile: 65, desktop: 25, tablet: 10 };
-  let peakUsageData = [20, 10, 30, 60, 80, 90, 100, 70];
+  let peakUsageData = [
+    { time: '12 AM', percentage: 20 },
+    { time: '3 AM', percentage: 10 },
+    { time: '6 AM', percentage: 30 },
+    { time: '9 AM', percentage: 60 },
+    { time: '12 PM', percentage: 80 },
+    { time: '3 PM', percentage: 90 },
+    { time: '6 PM', percentage: 100 },
+    { time: '9 PM', percentage: 70 }
+  ];
   let locationData = [
-    { name: 'Mumbai', percentage: 35, color: '#4285F4' },
-    { name: 'Delhi', percentage: 28, color: '#AECBFA' },
-    { name: 'Bangalore', percentage: 22, color: '#7BAAF7' },
-    { name: 'Others', percentage: 15, color: '#E8F0FE' }
+    { name: 'United States', users: 320, percentage: 35 },
+    { name: 'United Kingdom', users: 240, percentage: 26 },
+    { name: 'Canada', users: 180, percentage: 20 },
+    { name: 'Germany', users: 100, percentage: 11 },
+    { name: 'Others', users: 72, percentage: 8 }
   ];
   
   onMount(() => {
@@ -64,30 +74,7 @@
       }
     });
     
-    // Bar Chart
-    const barCtx = document.getElementById('barChart');
-    barChart = new Chart(barCtx, {
-      type: 'bar',
-      data: {
-        labels: ['12 AM', '3 AM', '6 AM', '9 AM', '12 PM', '3 PM', '6 PM', '9 PM'],
-        datasets: [{
-          data: peakUsageData,
-          backgroundColor: '#4285F4',
-          borderRadius: 20,
-          borderSkipped: false
-        }]
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: { 
-          x: { beginAtZero: true, max: 100, grid: { display: false } },
-          y: { grid: { display: false } }
-        }
-      }
-    });
+    // Bar Chart removed - now using custom HTML/CSS
     
     // Device Chart
     const deviceCtx = document.getElementById('deviceChart');
@@ -223,45 +210,87 @@
       <!-- User Activity Analytics -->
       <div class="analytics">
         <!-- Device Type -->
-        <div class="small-card">
-          <h3 style="font-size: 12px; font-weight: 600; margin-bottom: 6px;">Device Type</h3>
-          <canvas id="deviceChart" style="height: 120px !important; max-height: 120px;"></canvas>
-          <div style="display: flex; justify-content: space-around; margin-top: 8px; padding-top: 6px; border-top: 1px solid #e0e0e0;">
-            <div style="text-align: center;">
-              <div style="font-size: 14px; margin-bottom: 2px;">📱</div>
-              <div style="font-weight: 600; font-size: 12px; color: #4285F4;">{deviceData.mobile}%</div>
-              <div style="font-size: 10px; color: #666;">Mobile</div>
+        <div class="device-type-card">
+          <h3 class="device-type-title">Device Type</h3>
+          <div class="device-chart">
+            <div class="device-bar-item">
+              <span class="device-label">Mobile</span>
+              <div class="device-bar">
+                <div class="device-bar-fill mobile" style="width: {deviceData.mobile}%;"></div>
+              </div>
             </div>
-            <div style="text-align: center;">
-              <div style="font-size: 14px; margin-bottom: 2px;">💻</div>
-              <div style="font-weight: 600; font-size: 12px; color: #AECBFA;">{deviceData.desktop}%</div>
-              <div style="font-size: 10px; color: #666;">Desktop</div>
+            <div class="device-bar-item">
+              <span class="device-label">Desktop</span>
+              <div class="device-bar">
+                <div class="device-bar-fill desktop" style="width: {deviceData.desktop}%;"></div>
+              </div>
             </div>
-            <div style="text-align: center;">
-              <div style="font-size: 14px; margin-bottom: 2px;">📲</div>
-              <div style="font-weight: 600; font-size: 12px; color: #7BAAF7;">{deviceData.tablet}%</div>
-              <div style="font-size: 10px; color: #666;">Tablet</div>
+            <div class="device-bar-item">
+              <span class="device-label">Tablet</span>
+              <div class="device-bar">
+                <div class="device-bar-fill tablet" style="width: {deviceData.tablet}%;"></div>
+              </div>
+            </div>
+          </div>
+          <div class="device-summary">
+            <div class="device-summary-item">
+              <div class="device-icon">📱</div>
+              <div class="device-percentage">{deviceData.mobile}%</div>
+              <div class="device-name">Mobile</div>
+            </div>
+            <div class="device-summary-item">
+              <div class="device-icon">💻</div>
+              <div class="device-percentage">{deviceData.desktop}%</div>
+              <div class="device-name">Desktop</div>
+            </div>
+            <div class="device-summary-item">
+              <div class="device-icon">📲</div>
+              <div class="device-percentage">{deviceData.tablet}%</div>
+              <div class="device-name">Tablet</div>
             </div>
           </div>
         </div>
 
         <!-- Peak Usage Time -->
-        <div class="small-card">
-          <h3 style="font-size: 12px; font-weight: 600; margin-bottom: 6px;">Peak Usage Time</h3>
-          <canvas id="barChart" style="height: 140px !important; max-height: 140px;"></canvas>
+        <div class="peak-usage-card">
+          <h3 class="peak-usage-title">Peak Usage Time</h3>
+          <div class="peak-usage-list">
+            {#each peakUsageData as usage, index}
+              <div class="usage-row">
+                <div class="usage-info">
+                  <span class="usage-time">{usage.time}</span>
+                </div>
+                <div class="usage-progress-container">
+                  <div class="usage-progress-bar">
+                    <div class="usage-progress-fill" style="width: {usage.percentage}%;">
+                      <span class="usage-percentage">{usage.percentage}%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            {/each}
+          </div>
         </div>
 
         <!-- Top Locations -->
-        <div class="small-card">
-          <h3 style="font-size: 12px; font-weight: 600; margin-bottom: 6px;">Top Locations</h3>
-          <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div class="top-locations-card">
+          <h3 class="locations-title">Top Locations</h3>
+          <div class="locations-list">
             {#each locationData as location}
-              <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px 0;">
-                <div style="display: flex; align-items: center; gap: 6px;">
-                  <div style="width: 8px; height: 8px; background: {location.color}; border-radius: 50%;"></div>
-                  <span style="font-size: 11px; color: #666;">{location.name}</span>
+              <div class="location-item">
+                <div class="location-header">
+                  <div class="location-left">
+                    <div class="location-icon">📍</div>
+                    <span class="location-name">{location.name}</span>
+                  </div>
+                  <div class="location-right">
+                    <span class="location-count">{location.users} users</span>
+                    <span class="location-percentage">{location.percentage}%</span>
+                  </div>
                 </div>
-                <span style="font-size: 11px; font-weight: 600; color: #333;">{location.percentage}%</span>
+                <div class="location-progress-bar">
+                  <div class="location-progress-fill" style="width: {location.percentage}%;"></div>
+                </div>
               </div>
             {/each}
           </div>
@@ -293,35 +322,326 @@
   .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; text-align: center; }
   .metric-value { font-size: 18px; font-weight: bold; color: #333; }
   .metric-label { font-size: 12px; color: #666; }
-  .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .charts { display: grid; grid-template-columns: 0.35fr 1.65fr; gap: 12px; align-items: start; overflow: hidden; }
+  .charts .card:first-child { max-width: 320px; }
   .analytics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
   .filter-card { 
     width: 100%; 
-    height: 60px; 
-    padding: 8px; 
+    height: 50px; 
+    padding: 6px; 
     display: flex; 
     align-items: center; 
-    gap: 8px; 
+    gap: 6px; 
     border-radius: 8px; 
     border: 1px solid #e5e7eb; 
     background: #ffffff; 
     cursor: pointer; 
-    margin-bottom: 8px; 
+    margin-bottom: 6px; 
     transition: all 0.3s ease;
   }
   .filter-card:hover { background: #f9fafb; }
   .filter-card.active { border: 2px solid #3b82f6; box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.1); }
-  .filter-thumbnail { width: 32px; height: 32px; }
+  .filter-thumbnail { width: 28px; height: 28px; }
   .thumbnail-icon { width: 100%; height: 100%; border-radius: 6px; }
   .filter-content { flex: 1; display: flex; flex-direction: column; justify-content: space-between; }
-  .filter-title { font-size: 14px; font-weight: 600; color: #111827; margin: 0 0 2px 0; }
-  .filter-date { font-size: 11px; color: #6b7280; margin: 0 0 2px 0; }
-  .filter-stats { display: flex; gap: 12px; font-size: 11px; color: #111827; }
-  .filter-stats span { display: flex; align-items: center; gap: 2px; }
+  .filter-title { font-size: 12px; font-weight: 600; color: #111827; margin: 0 0 1px 0; }
+  .filter-date { font-size: 9px; color: #6b7280; margin: 0 0 1px 0; }
+  .filter-stats { display: flex; gap: 8px; font-size: 9px; color: #111827; }
+  .filter-stats span { display: flex; align-items: center; gap: 1px; }
   .btn { padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer; font-size: 12px; }
   .btn-primary { background: #2196f3; color: white; }
   .btn-secondary { background: #f5f5f5; color: #333; }
   canvas { height: 200px !important; max-height: 200px; }
+  #lineChart { height: 300px !important; max-height: 300px; }
+  #pieChart { height: 300px !important; max-height: 300px; width: 100% !important; }
+  
+  /* Top Locations Card Styles */
+  .top-locations-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(31, 41, 55, 0.06);
+    padding: 8px;
+    margin-bottom: 8px;
+    width: 180px;
+    height: 220px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .locations-title {
+    font-family: 'Inter', 'Roboto', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: #1F2937;
+    margin: 0 0 4px 0;
+    text-align: left;
+  }
+  
+  .locations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    justify-content: space-evenly;
+    padding: 1px 0;
+  }
+  
+  .location-item {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  
+  .location-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .location-left {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  
+  .location-right {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  
+  .location-icon {
+    width: 8px;
+    height: 8px;
+    font-size: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .location-name {
+    font-family: 'Inter', 'Roboto', sans-serif;
+    font-size: 7px;
+    font-weight: 500;
+    color: #374151;
+  }
+  
+  .location-count {
+    font-family: 'Inter', 'Roboto', sans-serif;
+    font-size: 6px;
+    font-weight: 400;
+    color: #6B7280;
+  }
+  
+  .location-percentage {
+    font-family: 'Inter', 'Roboto', sans-serif;
+    font-size: 7px;
+    font-weight: 700;
+    color: #111827;
+  }
+  
+  .location-progress-bar {
+    width: 100%;
+    height: 4px;
+    background-color: #E5E7EB;
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  
+  .location-progress-fill {
+    height: 100%;
+    background-color: #2563EB;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+  
+  /* Peak Usage Time Card Styles */
+  .peak-usage-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(31, 41, 55, 0.06);
+    padding: 8px;
+    margin-bottom: 8px;
+    width: 180px;
+    height: 220px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .peak-usage-title {
+    font-family: 'Inter', 'Roboto', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: #1F2937;
+    margin: 0 0 4px 0;
+    text-align: left;
+  }
+  
+  .peak-usage-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    justify-content: space-evenly;
+    padding: 1px 0;
+  }
+  
+  .usage-row {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  
+  .usage-info {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0px;
+  }
+  
+  .usage-time {
+    font-family: 'Inter', 'Roboto', sans-serif;
+    font-size: 7px;
+    font-weight: 500;
+    color: #374151;
+  }
+  
+  .usage-progress-container {
+    width: 100%;
+  }
+  
+  .usage-progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: #E5E7EB;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+  
+  .usage-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3B82F6 0%, #60A5FA 100%);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding-right: 2px;
+    min-width: 15px;
+  }
+  
+  .usage-percentage {
+    font-family: 'Inter', 'Roboto', sans-serif;
+    font-size: 6px;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  }
+  
+  /* Device Type Card Styles */
+  .device-type-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(31, 41, 55, 0.06);
+    padding: 8px;
+    margin-bottom: 8px;
+    width: 180px;
+    height: 220px;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .device-type-title {
+    font-family: 'Inter', 'Roboto', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    color: #1F2937;
+    margin: 0 0 4px 0;
+    text-align: left;
+  }
+  
+  .device-chart {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 6px;
+  }
+  
+  .device-bar-item {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+  
+  .device-label {
+    font-family: 'Inter', 'Roboto', sans-serif;
+    font-size: 7px;
+    font-weight: 500;
+    color: #9CA3AF;
+    margin-bottom: 1px;
+  }
+  
+  .device-bar {
+    width: 100%;
+    height: 8px;
+    background-color: #F3F4F6;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  .device-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+  
+  .device-bar-fill.mobile {
+    background-color: #2563EB;
+  }
+  
+  .device-bar-fill.desktop {
+    background-color: #93C5FD;
+  }
+  
+  .device-bar-fill.tablet {
+    background-color: #3B82F6;
+  }
+  
+  .device-summary {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding-top: 4px;
+    border-top: 1px solid #E5E7EB;
+  }
+  
+  .device-summary-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+  }
+  
+  .device-icon {
+    font-size: 10px;
+    color: #3B82F6;
+  }
+  
+  .device-percentage {
+    font-family: 'Inter', 'Roboto', sans-serif;
+    font-size: 8px;
+    font-weight: 700;
+    color: #111827;
+  }
+  
+  .device-name {
+    font-family: 'Inter', 'Roboto', sans-serif;
+    font-size: 6px;
+    font-weight: 400;
+    color: #6B7280;
+  }
   
   @media (max-width: 1200px) {
     .analytics { grid-template-columns: repeat(2, 1fr); }
@@ -333,5 +653,37 @@
     .charts { grid-template-columns: 1fr; }
     .analytics { grid-template-columns: 1fr; }
     .metrics { grid-template-columns: repeat(3, 1fr); }
+    
+    .top-locations-card {
+      width: 100%;
+      height: auto;
+      min-height: 400px;
+    }
+    
+    .peak-usage-card {
+      width: 100%;
+      height: auto;
+      min-height: 400px;
+    }
+    
+    .usage-progress-bar {
+      width: 100%;
+    }
+    
+    .peak-usage-card {
+      width: 100%;
+      height: auto;
+      min-height: 400px;
+    }
+    
+    .device-type-card {
+      width: 100%;
+      height: auto;
+      min-height: 400px;
+    }
+    
+    .device-summary {
+      gap: 20px;
+    }
   }
 </style>
