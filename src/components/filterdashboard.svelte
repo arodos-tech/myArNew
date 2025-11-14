@@ -242,6 +242,8 @@
   }
 
   onMount(async () => {
+    loading = true;
+    
     // Check for auth parameter in URL (from subdomain redirect)
     const urlParams = new URLSearchParams(window.location.search);
     const authParam = urlParams.get("auth");
@@ -262,67 +264,106 @@
         user = userData;
       } catch (error) {
         console.error("Error parsing auth parameter:", error);
-        goto("/login");
+        loading = false;
+        error = "Authentication failed. Please log in again.";
+        setTimeout(() => goto("/login"), 2000);
         return;
       }
     } else {
       // Check if user is logged in
       const userData = localStorage.getItem("user");
       if (!userData) {
-        goto("/login");
+        loading = false;
+        error = "Please log in to view your filters.";
+        setTimeout(() => goto("/login"), 2000);
         return;
       }
-      user = JSON.parse(userData);
-    }
-
-    const pricePlansRes = await getPricePlans({});
-
-    if (!pricePlansRes.err) {
-      const plans = pricePlansRes.result || [];
-      pricingPlans = plans;
-    }
-    const usersPlanRes = await getPayments({
-      search: `user:${user.id}`,
-      sort: "-created_at",
-    });
-
-    if (usersPlanRes.err) {
-      console.error("Error fetching user plan:", usersPlanRes.err);
-    } else {
-      if (usersPlanRes.count < 1) {
-        console.warn("No active plan found for user");
-        currentPlan = pricingPlans.find((p) => p.monthly_price === "0").id;
-      } else {
-        currentPlan = usersPlanRes.result[0].plan;
+      try {
+        user = JSON.parse(userData);
+      } catch (parseError) {
+        console.error("Error parsing user data:", parseError);
+        localStorage.removeItem("user");
+        loading = false;
+        error = "Invalid session. Please log in again.";
+        setTimeout(() => goto("/login"), 2000);
+        return;
       }
     }
-    // Redirect based on user role
-    if (user.role === "super_admin") {
-      goto("/superadmin");
-      return;
-    }
-    // Remove the admin redirect - allow admins to access dashboard too
-    // } else if (user.role === 'admin') {
-    //   goto('/admin');
-    //   return;
-    // }
 
-    await loadUserFilters();
+    try {
+      const pricePlansRes = await getPricePlans({});
+
+      if (!pricePlansRes.err) {
+        const plans = pricePlansRes.result || [];
+        pricingPlans = plans;
+      }
+      
+      const usersPlanRes = await getPayments({
+        search: `user:${user.id}`,
+        sort: "-created_at",
+      });
+
+      if (usersPlanRes.err) {
+        console.error("Error fetching user plan:", usersPlanRes.err);
+      } else {
+        if (usersPlanRes.count < 1) {
+          console.warn("No active plan found for user");
+          currentPlan = pricingPlans.find((p) => p.monthly_price === "0")?.id;
+        } else {
+          currentPlan = usersPlanRes.result[0].plan;
+        }
+      }
+      
+      // Redirect based on user role
+      if (user.role === "super_admin") {
+        loading = false;
+        goto("/superadmin");
+        return;
+      }
+      // Remove the admin redirect - allow admins to access dashboard too
+      // } else if (user.role === 'admin') {
+      //   goto('/admin');
+      //   return;
+      // }
+
+      await loadUserFilters();
+    } catch (initError) {
+      console.error("Initialization error:", initError);
+      loading = false;
+      error = "Failed to initialize. Please refresh the page.";
+    }
   });
 
   async function loadUserFilters() {
     try {
       loading = true;
+      error = "";
+      
+      // Check if user is authenticated
+      if (!user || !user.id) {
+        error = "Authentication required. Please log in again.";
+        loading = false;
+        return;
+      }
+
       console.log("Loading filters for user:", user);
+
+      // Set timeout to prevent infinite loading
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Request timeout')), 10000)
+      );
 
       // Try multiple search methods
       let response;
       let filters_found = [];
 
-      // Method 1: Search by user field
+      // Method 1: Search by user field with timeout
       try {
         console.log("Trying search: user:" + user.id);
-        response = await getFilters({ search: `user:${user.id}` });
+        response = await Promise.race([
+          getFilters({ search: `user:${user.id}` }),
+          timeoutPromise
+        ]);
         console.log("Method 1 response:", response);
 
         if (!response.err) {
@@ -331,15 +372,27 @@
         }
       } catch (e) {
         console.log("Method 1 failed:", e);
+        if (e.message === 'Request timeout') {
+          error = "Request timed out. Please check your connection and try again.";
+          return;
+        }
+        if (e.message.includes('401') || e.message.includes('Unauthorized')) {
+          error = "Authentication failed. Please log in again.";
+          return;
+        }
       }
 
       if (response && response.err) {
-        error = "Failed to load filters";
+        if (response.err.includes('401') || response.err.includes('Unauthorized')) {
+          error = "Authentication failed. Please log in again.";
+        } else {
+          error = "Failed to load filters. Please try again.";
+        }
         console.error("API Error:", response.err);
         return;
       }
 
-      // Add sample data for demonstration
+      // Add sample data for demonstration if no real filters found
       const sampleFilters = [
         {
           id: 'vintage-1',
@@ -375,16 +428,27 @@
 
       // Generate QR codes for each filter
       for (let filter of filters) {
-        // Extract filename from filter_url and remove .png extension
-        const filename = filter.filter_url.split("/").pop().replace(".png", "");
-        // Generate shortened/obfuscated URL without .png and without user= prefix
-        const filterLink = `${window.location.origin}/filter/ar?filter=${filename}&${filter.user}`;
-        filter.qr_code = await QRCode.toDataURL(filterLink);
-        filter.share_link = filterLink;
+        try {
+          // Extract filename from filter_url and remove .png extension
+          const filename = filter.filter_url.split("/").pop().replace(".png", "");
+          // Generate shortened/obfuscated URL without .png and without user= prefix
+          const filterLink = `${window.location.origin}/filter/ar?filter=${filename}&${filter.user || user.id}`;
+          filter.qr_code = await QRCode.toDataURL(filterLink);
+          filter.share_link = filterLink;
+        } catch (qrError) {
+          console.warn("Failed to generate QR code for filter:", filter.name, qrError);
+          // Continue with other filters even if QR generation fails
+        }
       }
     } catch (err) {
-      error = "Failed to load filters";
       console.error("Error loading filters:", err);
+      if (err.message === 'Request timeout') {
+        error = "Request timed out. Please check your connection and try again.";
+      } else if (err.message.includes('401') || err.message.includes('Unauthorized')) {
+        error = "Authentication failed. Please log in again.";
+      } else {
+        error = "Failed to load filters. Please try again.";
+      }
     } finally {
       loading = false;
     }

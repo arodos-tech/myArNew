@@ -68,6 +68,7 @@
   let isFaceMeshBusy = false; // prevent concurrent faceMesh.send
   // let dynamicCaption = "Festive mood: ON 🔥 Can't wait for #ASoBPuja"; // Default fallback
   let dynamicCaption = "";
+  let capturedImageBlob = null;
 
   // Pin MediaPipe CDN version to avoid asset mismatches
   const MEDIAPIPE_FACE_MESH_VERSION = "0.4.1633559619";
@@ -905,6 +906,7 @@ onMount(async () => {
     }
 
     capturedImg = null;
+    capturedImageBlob = null;
     recordedVideo = null;
     showPreview = false;
     isProcessingVideo = false; // Reset processing state
@@ -1104,6 +1106,12 @@ onMount(async () => {
       // Generate image data URL using lossless PNG to preserve original quality
       const outputFormat = "image/png";
       capturedImg = canvasRef.toDataURL(outputFormat);
+      
+      // Create blob for sharing
+      canvasRef.toBlob((blob) => {
+        capturedImageBlob = blob;
+      }, outputFormat);
+      
       recordedVideo = null;
 
       console.log(
@@ -2189,11 +2197,14 @@ async function shareContent() {
         </button>
         <WhatsAppShareButton 
           text={dynamicCaption || "Check out my AR photo!"} 
-          url={window.location.href} 
+          photoUrl={capturedImg}
+          imageBlob={capturedImageBlob}
+          filename="ar-photo.jpg"
         />
         <FacebookShareButton 
-          url={window.location.href} 
           quote={dynamicCaption || "Check out my AR photo!"} 
+          imageBlob={capturedImageBlob}
+          filename="ar-photo.jpg"
         />
         <button class="action-btn filters-btn" on:click={showUserFilters}>
           <span class="btn-icon"><img src="/filter.svg" alt="Filters" /></span>

@@ -751,7 +751,108 @@
         {:else}
           <!-- Dashboard Section -->
           {#if activeSection === "dashboard"}
-            <Dashboard />
+            <!-- Dashboard Stats -->
+            <div class="dashboard">
+              <!-- Top Stats -->
+              <div class="stats-grid">
+                <div class="stat-card blue">
+                  <div class="stat-content">
+                    <h3>App Opens</h3>
+                    <div class="icon-text">
+                      <img src={mobile} alt="Mobile" class="stat-icon" />
+                      <p class="stat-number">1,250</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="stat-card green">
+                  <div class="stat-content">
+                    <h3>Camera Access</h3>
+                    <div class="icon-text">
+                      <img src={camera} alt="Camera" class="stat-icon" />
+                      <p class="stat-number">850</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="stat-card purple">
+                  <div class="stat-content">
+                    <h3>Media Captured</h3>
+                    <div class="icon-text">
+                      <img src={photo} alt="Photo" class="stat-icon" />
+                      <p class="stat-number">543</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="stat-card red">
+                  <div class="stat-content">
+                    <h3>App Dropouts</h3>
+                    <div class="icon-text">
+                      <img src={cross} alt="Cross" class="stat-icon" />
+                      <p class="stat-number">211</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Charts Section -->
+              <div class="charts-grid">
+                <div class="chart-card">
+                  <h4>Sharing Platforms</h4>
+                  <div class="chart-content">
+                    <img src={piechart} alt="Sharing Platforms Chart" class="pie-chart" />
+                  </div>
+                </div>
+
+                <div class="chart-card">
+                  <h4>User Locations</h4>
+                  <div class="chart-content">
+                    <img src={graph} alt="User Locations Chart" class="bar-chart" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Filter Usage Table -->
+              <div class="table-card">
+                <h4>Filter Usage Data</h4>
+                <table class="usage-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Org Details</th>
+                      <th>Filter Creation</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="filter-name-cell">
+                        <img src={filter} class="filter-img" alt="Shriram" />
+                        <span>Shriram</span>
+                      </td>
+                      <td>Org A</td>
+                      <td>12 Jan 2025</td>
+                    </tr>
+                    <tr>
+                      <td class="filter-name-cell">
+                        <img src={filter} class="filter-img" alt="AsoB" />
+                        <span>AsoB</span>
+                      </td>
+                      <td>Org B</td>
+                      <td>15 Feb 2025</td>
+                    </tr>
+                    <tr>
+                      <td class="filter-name-cell">
+                        <img src={filter} class="filter-img" alt="Sepia" />
+                        <span>Sepia</span>
+                      </td>
+                      <td>Org C</td>
+                      <td>28 Mar 2025</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           {/if}
 
           <!-- Users Section -->
@@ -2538,44 +2639,52 @@
   /* Stats Cards Grid */
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
     margin-bottom: 2rem;
   }
 
   /* Stat Card */
   .stat-card {
     border-radius: 12px;
-    padding: 1.2rem;
+    padding: 1rem;
     color: #fff;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
+    min-width: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
 
   /* Title */
   .stat-card h3 {
-    font-size: 1rem;
+    font-size: 0.85rem;
     font-weight: 500;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   /* Icon + Number Row */
   .stat-card .icon {
     display: flex;
     align-items: center;
-    gap: 30px;
+    justify-content: space-between;
+    gap: 0.5rem;
   }
 
   .stat-card .icon img {
-    width: 70px;
-    height: 70px;
+    width: 40px;
+    height: 40px;
     opacity: 0.8;
+    flex-shrink: 0;
   }
 
   .stat-card .icon .text {
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: bold;
+    white-space: nowrap;
   }
 
   /* Color Themes */
@@ -2595,7 +2704,7 @@
   /* Charts Grid */
   .charts-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 1.5rem;
     margin-bottom: 2rem;
   }
@@ -2605,12 +2714,26 @@
     border-radius: 12px;
     padding: 1.2rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e2e8f0;
+    min-width: 0;
   }
 
   .chart-card h4 {
     margin-bottom: 1rem;
     font-size: 1rem;
     font-weight: 600;
+    color: #2d3748;
+  }
+
+  .chart-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .pie-chart, .bar-chart {
+    max-width: 100%;
+    height: auto;
   }
 
   /* Table Card */

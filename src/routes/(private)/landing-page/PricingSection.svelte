@@ -5,12 +5,12 @@
   import FilterBenefits from "./FilterBenefits.svelte";
   import { getPricePlans } from "../../../services/actions/price-plans.js";
   
-  let isAnnual = false;
+  let showPlans = true;
   let subscriptionPlans = [];
   let loading = true;
 
-  const toggleAnnual = () => {
-    isAnnual = !isAnnual;
+  const toggleView = () => {
+    showPlans = !showPlans;
   };
 
   onMount(async () => {
@@ -73,45 +73,41 @@
         Select the perfect plan that grows with your AR needs and creativity
       </p>
 
-      <!-- Toggle -->
+      <!-- Plans/Packs Toggle -->
       <div class="toggle-container">
-        <div class="toggle">
-          <span class:active={!isAnnual}>Monthly</span>
-          <button class="switch" on:click={toggleAnnual}>
-            <div class:knob-annual={isAnnual} class="knob"></div>
-          </button>
-          <span class:active={isAnnual}>Annual</span>
+        <div class="main-toggle">
+          <span class:active={showPlans} on:click={() => showPlans = true}>Plans</span>
+          <span class:active={!showPlans} on:click={() => showPlans = false}>Packs</span>
         </div>
-        <!-- {#if isAnnual}
-          <span class="save-badge">Save up to 20%</span>
-        {/if} -->
       </div>
     </div>
 
-    <!-- Subscription Plans -->
-    <div class="plans">
-      {#if loading}
-        <div class="loading">Loading plans...</div>
-      {:else}
-        {#each subscriptionPlans as plan, index}
-          <PricingCard {...plan} {isAnnual} delay={index * 100} />
-        {/each}
-      {/if}
-    </div>
-
-    <!-- Event Packs -->
-    <div class="event-packs">
-      <div class="event-header">
-        <h3>One-Time Event Packs</h3>
-        <p>Perfect for weddings, festivals & product launches</p>
+    {#if showPlans}
+      <!-- Subscription Plans -->
+      <div class="plans">
+        {#if loading}
+          <div class="loading">Loading plans...</div>
+        {:else}
+          {#each subscriptionPlans as plan, index}
+            <PricingCard {...plan} delay={index * 100} />
+          {/each}
+        {/if}
       </div>
+    {:else}
+      <!-- Event Packs -->
+      <div class="event-packs">
+        <div class="event-header">
+          <h3>One-Time Event Packs</h3>
+          <p>Perfect for weddings, festivals & product launches</p>
+        </div>
 
-      <div class="packs">
-        {#each eventPacks as pack, index}
-          <EventPackCard {...pack} delay={index * 100} />
-        {/each}
+        <div class="packs">
+          {#each eventPacks as pack, index}
+            <EventPackCard {...pack} delay={index * 100} />
+          {/each}
+        </div>
       </div>
-    </div>
+    {/if}
 
     <!-- Filter Benefits -->
     <FilterBenefits />
@@ -161,59 +157,62 @@
   
   .toggle-container {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    justify-content: center;
+    margin-bottom: 3rem;
   }
   
-  .toggle {
+  .main-toggle {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 1rem;
-  }
-  
-  .toggle span {
-    font-weight: 500;
-    color: #999;
-    font-size: 1rem;
-  }
-  
-  .toggle span.active {
-    color: #6366f1;
-  }
-  
-  .switch {
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 50px;
+    padding: 6px;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     position: relative;
-    width: 56px;
-    height: 28px;
-    border-radius: 9999px;
-    border: 2px solid #ccc;
-    background: #eee;
-    cursor: pointer;
     overflow: hidden;
-    transition: border-color 0.3s;
   }
   
-  .switch:hover {
-    border-color: #6366f1;
-  }
-  
-  .knob {
+  .main-toggle::before {
+    content: '';
     position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 20px;
-    height: 20px;
-    background: #fff;
-    border-radius: 50%;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
-    transition: transform 0.3s ease;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(236, 72, 153, 0.1));
+    border-radius: 50px;
+    z-index: 0;
   }
   
-  .knob-annual {
-    transform: translateX(28px);
+  .main-toggle span {
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 12px 24px;
+    border-radius: 40px;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: relative;
+    z-index: 1;
+    min-width: 80px;
+    text-align: center;
+  }
+  
+  .main-toggle span.active {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4);
+    transform: translateY(-2px);
+  }
+  
+  .main-toggle span:hover:not(.active) {
+    background: rgba(99, 102, 241, 0.1);
+    color: #6366f1;
+    transform: translateY(-1px);
   }
   
   .save-badge {
@@ -327,26 +326,10 @@
       font-size: 1.75rem;
     }
     
-    .toggle {
-      gap: 0.75rem;
-    }
-    
-    .toggle span {
-      font-size: 0.85rem;
-    }
-    
-    .switch {
-      width: 50px;
-      height: 26px;
-    }
-    
-    .knob {
-      width: 18px;
-      height: 18px;
-    }
-    
-    .knob-annual {
-      transform: translateX(24px);
+    .main-toggle span {
+      font-size: 0.9rem;
+      padding: 10px 20px;
+      min-width: 70px;
     }
     
     .save-badge {

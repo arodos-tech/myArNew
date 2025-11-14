@@ -8,11 +8,16 @@
   export let features: string[];
   export let cta: string;
   export let popular: boolean;
-  export let isAnnual: boolean;
   export let delay: number;
 
+  let isAnnual = false;
+  
   $: price = isAnnual ? annualPrice : monthlyPrice;
   $: period = isAnnual ? "year" : "month";
+  
+  const togglePeriod = () => {
+    isAnnual = !isAnnual;
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat("en-IN", {
@@ -44,6 +49,14 @@
       {name}
     </h3>
     <p class={popular ? "desc desc-popular" : "desc"}>{description}</p>
+    
+    <!-- Individual toggle for each card -->
+    <div class="card-toggle">
+      <div class="toggle">
+        <span class:active={!isAnnual} on:click={() => isAnnual = false}>Monthly</span>
+        <span class:active={isAnnual} on:click={() => isAnnual = true}>Annual</span>
+      </div>
+    </div>
   </div>
 
   <div class="price-box">
@@ -155,6 +168,57 @@
     color: rgba(255, 255, 255, 0.8);
   }
 
+  .card-toggle {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  .toggle {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 25px;
+    padding: 4px;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-popular .toggle {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .toggle span {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .toggle span.active {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+    transform: scale(1.05);
+  }
+
+  .card-popular .toggle span {
+    color: rgba(255, 255, 255, 0.7);
+  }
+
+  .card-popular .toggle span.active {
+    background: rgba(255, 255, 255, 0.9);
+    color: #6366f1;
+    box-shadow: 0 2px 8px rgba(255, 255, 255, 0.3);
+  }
+
   .price-box {
     text-align: center;
     margin-bottom: 2rem;
@@ -263,6 +327,11 @@
     
     .features {
       margin-bottom: 1.5rem;
+    }
+    
+    .toggle span {
+      font-size: 0.65rem;
+      padding: 5px 10px;
     }
   }
 </style>

@@ -7,6 +7,7 @@
   import filter from "$lib/assets/Vintage filter preview.png";
   import piechart from "$lib/assets/Container.png";
   import graph from "$lib/assets/SVG (4).png";
+  import FilterUsageData from "$lib/FilterUsageData.svelte";
 
   // You can pass these as props if they need to be dynamic
   let stats = {
@@ -92,45 +93,8 @@
     </div>
   </div>
 
-  <!-- Filter Usage Table -->
-  <div class="table-card">
-    <h4>Filter Usage Data</h4>
-    <table class="usage-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Org Details</th>
-          <th>Filter Creation</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td class="filter-name-cell">
-            <img src={filter} class="filter-img" alt="Shriram" />
-            <span>Shriram</span>
-          </td>
-          <td>Org A</td>
-          <td>12 Jan 2025</td>
-        </tr>
-        <tr>
-          <td class="filter-name-cell">
-            <img src={filter} class="filter-img" alt="AsoB" />
-            <span>AsoB</span>
-          </td>
-          <td>Org B</td>
-          <td>15 Feb 2025</td>
-        </tr>
-        <tr>
-          <td class="filter-name-cell">
-            <img src={filter} class="filter-img" alt="Sepia" />
-            <span>Sepia</span>
-          </td>
-          <td>Org C</td>
-          <td>28 Mar 2025</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+  <!-- Filter Usage Data Component -->
+  <FilterUsageData />
 </div>
 
 <style>
@@ -175,14 +139,14 @@
   /* Stats Grid */
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
     margin-bottom: 2rem;
   }
 
   .stat-card {
     border-radius: 12px;
-    padding: 1.5rem;
+    padding: 1rem;
     color: #fff;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   }
@@ -190,11 +154,11 @@
   .stat-content {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.75rem;
   }
 
   .stat-card h3 {
-    font-size: 1rem;
+    font-size: 0.85rem;
     font-weight: 500;
     margin: 0;
     opacity: 0.9;
@@ -207,13 +171,13 @@
   }
 
   .stat-icon {
-    width: 60px;
-    height: 60px;
+    width: 40px;
+    height: 40px;
     opacity: 0.8;
   }
 
   .stat-number {
-    font-size: 2rem;
+    font-size: 1.5rem;
     font-weight: bold;
     margin: 0;
   }
