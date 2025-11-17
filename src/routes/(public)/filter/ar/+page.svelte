@@ -126,9 +126,6 @@
   }
 
   onMount(async () => {
-    await logEvent("openLink", getActualFilterId());
-    await logEvent("cameraAccessAttempt", getActualFilterId());
-
     // Load filter first to get currentUserId
     await loadFilter();
 
@@ -139,6 +136,8 @@
     } else {
       console.log("No user ID found, skipping user filters load");
     }
+    await logEvent("openLink", getActualFilterId());
+    await logEvent("cameraAccessAttempt", getActualFilterId());
 
     await startCamera();
     initializeOffscreenCanvas();
