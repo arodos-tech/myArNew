@@ -7,6 +7,8 @@
     LogOut,
     CreditCard,
     Package,
+    Menu,
+    X,
   } from "lucide-svelte";
   import logo from "../lib/assets/pic.png";
   import { onMount } from "svelte";
@@ -16,6 +18,12 @@
   export let switchSection: (section: string) => void;
   export let logout: () => void;
   export let user: any = null;
+
+  export let isCollapsed = false;
+
+  function toggleSidebar() {
+    isCollapsed = !isCollapsed;
+  }
 
   onMount(() => {
     // Check for auth parameter in URL (from subdomain redirect)
@@ -59,19 +67,23 @@
   });
 </script>
 
-<aside class="sidebar">
+<aside class="sidebar" class:collapsed={isCollapsed}>
   <nav class="sidebar-nav">
-    <div class="logo-section">
-      <img src={logo} alt="logo" />
-      <span class="admin-text">
-        {#if user?.role === "super_admin"}
-          Admin
-        {:else if user?.role === "admin"}
-          {user?.name || "User"}
-        {:else}
-          {user?.name || "User"}
-        {/if}
-      </span>
+    <div class="logo-section" on:click={toggleSidebar}>
+      {#if isCollapsed}
+        <Menu size="20" />
+      {:else}
+        <img src={logo} alt="logo" />
+        <span class="admin-text">
+          {#if user?.role === "super_admin"}
+            Admin
+          {:else if user?.role === "admin"}
+            {user?.name || "User"}
+          {:else}
+            {user?.name || "User"}
+          {/if}
+        </span>
+      {/if}
     </div>
     <button
       class="nav-item {activeSection === 'dashboard' ? 'active' : ''}"
@@ -143,6 +155,10 @@
     transition: width 0.3s ease;
   }
 
+  .sidebar.collapsed {
+    width: 60px;
+  }
+
   .sidebar-nav {
     display: flex;
     flex-direction: column;
@@ -156,6 +172,18 @@
     padding: 1rem 1.5rem;
     margin-top: 3.5rem;
     flex-direction: row;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 6px;
+  }
+
+  .logo-section:hover {
+    background: #f7fafc;
+  }
+
+  .sidebar.collapsed .logo-section {
+    justify-content: center;
+    padding: 1rem 0.5rem;
   }
 
   .logo-section img {
@@ -199,6 +227,15 @@
 
   .nav-text {
     transition: opacity 0.3s ease;
+  }
+
+  .sidebar.collapsed .nav-text {
+    display: none;
+  }
+
+  .sidebar.collapsed .nav-item {
+    justify-content: center;
+    padding: 1rem 0.5rem;
   }
 
   /* Medium and small screens */

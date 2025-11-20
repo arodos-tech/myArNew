@@ -295,7 +295,7 @@
   /* Stats Grid */
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 1rem;
     margin-bottom: 2rem;
   }
@@ -358,7 +358,7 @@
   /* Charts Grid */
   .charts-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
   }

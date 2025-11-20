@@ -13,8 +13,8 @@
   } from "@lucide/svelte";
   import { getFiltersByUser } from "../../../../services/actions/filter.js";
   import { logEvent } from "$lib/logHelper.js";
-  import WhatsAppShareButton from "$lib/WhatsAppShareButton.svelte";
-  import FacebookShareButton from "$lib/FacebookShareButton.svelte";
+
+
 
   // Base URL for filter images
   const FILTER_BASE_URL =
@@ -2227,12 +2227,7 @@
         <h2 class="preview-title">
           <!-- {#if capturedImg}<Camera /> Photo{:else}<Video /> Video{/if} -->
         </h2>
-        <button
-          class="save-btn-top"
-          on:click={() => (capturedImg ? downloadImage() : downloadVideo())}
-        >
-          <img src="/Save.svg" alt="Save" />
-        </button>
+        <div></div>
       </div>
 
       <div class="preview-content">
@@ -2270,19 +2265,14 @@
           <span class="btn-icon"><img src="/Share.svg" alt="Share" /></span>
           <span class="btn-text">Share</span>
         </button>
-        <WhatsAppShareButton
-          text={dynamicCaption || "Check out my AR photo!"}
-          photoUrl={capturedImg}
-          imageBlob={capturedImageBlob}
-          filename="ar-photo.jpg"
-          onShare={logWhatsAppShare}
-        />
-        <FacebookShareButton
-          quote={dynamicCaption || "Check out my AR photo!"}
-          imageBlob={capturedImageBlob}
-          filename="ar-photo.jpg"
-          onShare={logFacebookShare}
-        />
+        <button class="action-btn save-btn" on:click={() => (capturedImg ? downloadImage() : downloadVideo())}>
+          <span class="btn-icon"><img src="/Save.svg" alt="Save" /></span>
+          <span class="btn-text">Save</span>
+        </button>
+        <button class="action-btn retake-btn" on:click={goBackToCamera}>
+          <span class="btn-icon"><img src="/Retake.svg" alt="Retake" /></span>
+          <span class="btn-text">Retake</span>
+        </button>
         <button class="action-btn filters-btn" on:click={showUserFilters}>
           <span class="btn-icon"><img src="/filter.svg" alt="Filters" /></span>
           <span class="btn-text">Filters</span>

@@ -64,6 +64,7 @@
   let loadingPlans = false;
   let error = "";
   let success = "";
+  let sidebarCollapsed = false;
 
   // Pack Plans State
   let packPlans = [];
@@ -240,6 +241,9 @@
     }
 
     loadData();
+    
+    // Always load dashboard data on mount
+    setTimeout(() => loadFilterUsageData(), 500);
   });
 
   $: if (activeSection === "dashboard" && user) {
@@ -312,6 +316,20 @@
 
     console.log("📈 Processed Dashboard Stats:", dashboardStats);
   }
+
+  function loadMockData() {
+    console.log("🧪 Loading mock data for testing...");
+    const mockData = [
+      { type: "openLink", total_logs: 1250 },
+      { type: "cameraAccessAttempt", total_logs: 890 },
+      { type: "photoCaptured", total_logs: 645 },
+      { type: "photoCapture", total_logs: 123 }
+    ];
+    
+    filterUsageData = mockData;
+    processDashboardData(mockData);
+    console.log("✅ Mock data loaded successfully");
+  }
   // Reactive statements for pagination
   $: if (activeSection === "users" && user) {
     loadUsers();
@@ -346,6 +364,7 @@
 
   function updateDashboardStats() {
     dashboardStats = {
+      ...dashboardStats,
       totalUsers: totalUsers,
       totalFilters: totalFilters,
       regularUsers: users.filter((u) => u.role === "user").length,
@@ -518,7 +537,7 @@
   async function handleDeletePlan(planId) {
     if (
       !confirm(
-        "Are you sure you want to delete this price plan? This action cannot be undone."
+        "Are you sure you want to delete this price plan? This action cannot be undone.",
       )
     ) {
       return;
@@ -694,7 +713,7 @@
   async function handleDeletePackPlan(planId) {
     if (
       !confirm(
-        "Are you sure you want to delete this pack plan? This action cannot be undone."
+        "Are you sure you want to delete this pack plan? This action cannot be undone.",
       )
     ) {
       return;
@@ -760,7 +779,7 @@
   function toggleFilterType(filterType) {
     if (packPlanForm.filter_type.includes(filterType)) {
       packPlanForm.filter_type = packPlanForm.filter_type.filter(
-        (type) => type !== filterType
+        (type) => type !== filterType,
       );
     } else {
       packPlanForm.filter_type = [...packPlanForm.filter_type, filterType];
@@ -823,7 +842,7 @@
   async function handleDeleteUser(userId) {
     if (
       !confirm(
-        "Are you sure you want to delete this user? This action cannot be undone."
+        "Are you sure you want to delete this user? This action cannot be undone.",
       )
     ) {
       return;
@@ -856,7 +875,7 @@
   async function handleDeleteFilter(filterId) {
     if (
       !confirm(
-        "Are you sure you want to delete this filter? This action cannot be undone."
+        "Are you sure you want to delete this filter? This action cannot be undone.",
       )
     ) {
       return;
@@ -1041,9 +1060,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </svelte:head>
 
-<div class="app-container">
+<div class="app-container" class:sidebar-collapsed={sidebarCollapsed}>
   <Header {user} />
-  <Sidebar {activeSection} {switchSection} {logout} />
+  <Sidebar
+    {activeSection}
+    {switchSection}
+    {logout}
+    bind:isCollapsed={sidebarCollapsed}
+  />
 
   <div class="main-layout">
     <main class="main-content">
@@ -1077,7 +1101,6 @@
             <div class="welcome-actions">
               <button class="action-btn primary" on:click={handleCreateFilter}>
                 <span class="btn-icon"><Plus /></span>
-                Create Filter
               </button>
             </div>
           {/if}
@@ -1099,6 +1122,7 @@
           {#if activeSection === "dashboard"}
             <!-- Dashboard Stats -->
             <div class="dashboard">
+
               <!-- Top Stats -->
               <div class="stats-grid">
                 <div class="stat-card blue">
@@ -1109,7 +1133,7 @@
                       <p class="stat-number">
                         {loadingDashboard
                           ? "Loading..."
-                          : dashboardStats.appOpens.toLocaleString()}
+                          : (dashboardStats.appOpens || 0).toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -1123,7 +1147,7 @@
                       <p class="stat-number">
                         {loadingDashboard
                           ? "Loading..."
-                          : dashboardStats.cameraAccess.toLocaleString()}
+                          : (dashboardStats.cameraAccess || 0).toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -1137,7 +1161,7 @@
                       <p class="stat-number">
                         {loadingDashboard
                           ? "Loading..."
-                          : dashboardStats.mediaCaptured.toLocaleString()}
+                          : (dashboardStats.mediaCaptured || 0).toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -1145,10 +1169,23 @@
 
                 <div class="stat-card red">
                   <div class="stat-content">
-                    <h3>App Dropouts</h3>
-                    <div class="icon-text">
-                      <img src={cross} alt="Cross" class="stat-icon" />
-                      <p class="stat-number">211</p>
+                    <h3>App Share</h3>
+                    <div
+                      class="icon-text"
+                      style="display: flex; align-items: center; justify-content: space-between;"
+                    >
+                      <img
+                        src={cross}
+                        alt="Cross"
+                        class="stat-icon"
+                        style="width: 36px; height: 36px;"
+                      />
+                      <p
+                        class="stat-number"
+                        style="font-size: 1.35rem; margin: 0;"
+                      >
+                        211
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1495,7 +1532,7 @@
                       <div class="pagination-info">
                         Showing {(currentPlansPage - 1) * plansPerPage + 1} to {Math.min(
                           currentPlansPage * plansPerPage,
-                          totalPlans
+                          totalPlans,
                         )} of {totalPlans} price plans
                       </div>
                       <div class="pagination-controls">
@@ -1721,7 +1758,7 @@
                         Showing {(currentPackPlansPage - 1) * packPlansPerPage +
                           1} to {Math.min(
                           currentPackPlansPage * packPlansPerPage,
-                          totalPackPlans
+                          totalPackPlans,
                         )} of {totalPackPlans} pack plans
                       </div>
                       <div class="pagination-controls">
@@ -2575,9 +2612,12 @@
     padding: 2rem;
     overflow-y: auto;
     margin-left: 250px;
-    width: calc(100vw - 250px);
     box-sizing: border-box;
     transition: all 0.3s ease;
+  }
+
+  .sidebar-collapsed .main-content {
+    margin-left: 60px;
   }
 
   /* Image Upload Section Styles */
@@ -3446,30 +3486,32 @@
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1rem;
-    margin-bottom: 2rem;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
   }
 
   /* Stat Card */
   .stat-card {
-    border-radius: 12px;
+    border-radius: 8px;
     padding: 1rem;
     color: #fff;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     min-width: 0;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    min-height: 90px;
   }
 
   /* Title */
   .stat-card h3 {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 500;
-    margin-bottom: 0.75rem;
+    margin-bottom: 0.6rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin: 0 0 0.6rem 0;
   }
 
   /* Icon + Number Row */
@@ -3480,17 +3522,25 @@
     gap: 0.5rem;
   }
 
-  .stat-card .icon img {
-    width: 40px;
-    height: 40px;
-    opacity: 0.8;
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+    opacity: 0.9;
     flex-shrink: 0;
   }
 
-  .stat-card .icon .text {
-    font-size: 1.5rem;
+  .stat-number {
+    font-size: 1.2rem;
     font-weight: bold;
     white-space: nowrap;
+    margin: 0;
+  }
+
+  .icon-text {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.3rem;
   }
 
   /* Color Themes */
@@ -3566,7 +3616,7 @@
   .table-card td {
     text-align: left;
     padding: 0.8rem;
-    border-bottom: 1px solid #ddd;
+    border-bottom: none;
   }
 
   .table-card th {
