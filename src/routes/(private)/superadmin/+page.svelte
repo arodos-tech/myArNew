@@ -929,25 +929,33 @@
     success = "";
   }
 
-  async function switchSection(newSection) {
+  function switchSection(newSection) {
     if (activeSection === newSection) return;
 
+    // Reset image upload state when switching sections
+    showImageUpload = false;
+    isUploading = false;
+    uploadSuccess = false;
+    transparencyInfo = null;
+
     activeSection = newSection;
+
     if (newSection === "users") {
       currentUsersPage = 1;
-      await loadUsers();
+      loadUsers();
     } else if (newSection === "filters") {
       currentFiltersPage = 1;
       if (users.length > 0) {
-        await loadFilters();
+        loadFilters();
       }
     } else if (newSection === "plans") {
       currentPlansPage = 1;
-      await loadPlans();
+      loadPlans();
     } else if (newSection === "pack-plans") {
-      // Add this case
       currentPackPlansPage = 1;
-      await loadPackPlans();
+      loadPackPlans();
+    } else if (newSection === "dashboard") {
+      loadFilterUsageData();
     }
   }
 
@@ -1132,7 +1140,6 @@
                           : dashboardStats.mediaCaptured.toLocaleString()}
                       </p>
                     </div>
-                    
                   </div>
                 </div>
 

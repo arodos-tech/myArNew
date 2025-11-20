@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { Plus } from "lucide-svelte";
   import mobile from "$lib/assets/SVG.png";
   import photo from "$lib/assets/SVG (2).png";
@@ -8,17 +9,152 @@
   import piechart from "$lib/assets/Container.png";
   import graph from "$lib/assets/SVG (4).png";
   import FilterUsageData from "$lib/FilterUsageData.svelte";
+  import { getClientFilterUsage } from "/src/services/actions/dashboard.js";
 
-  // You can pass these as props if they need to be dynamic
+  let loadingDashboard = false;
+  let error: string | null = null;
+  let userId: number | null = null;
+
+  // Stats with dynamic data from API
   let stats = {
-    appOpens: 1250,
-    cameraAccess: 850,
-    mediaCaptured: 543,
-    appDropouts: 211,
+    appOpens: 0,
+    cameraAccess: 0,
+    mediaCaptured: 0,
+    appDropouts: 211, // Static data for app dropouts
   };
+
+  // Function to get user ID from localStorage
+  function getUserIdFromLocalStorage(): number | null {
+    try {
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        const user = JSON.parse(userData);
+        console.log("👤 User data from localStorage:", user);
+
+        // Extract the id from the user object
+        const userId = user.id;
+        console.log("🔑 Extracted userId:", userId);
+
+        return userId || null;
+      }
+      console.warn("⚠️ No user data found in localStorage");
+      return null;
+    } catch (err) {
+      console.error("❌ Error parsing user data from localStorage:", err);
+      return null;
+    }
+  }
+
+  // Process dashboard data and map API response to stats
+  function processDashboardData(apiData: any[]) {
+    console.log("🔄 Processing dashboard data...", apiData);
+
+    // Initialize counters
+    let appOpens = 0;
+    let cameraAccess = 0;
+    let mediaCaptured = 0;
+
+    // Map API data to our stats
+    apiData.forEach((item) => {
+      switch (item.type) {
+        case "openLink":
+          appOpens += item.total_logs;
+          break;
+        case "cameraAccessAttempt":
+          cameraAccess += item.total_logs;
+          break;
+        case "photoCapture":
+        case "photoCaptured":
+          mediaCaptured += item.total_logs;
+          break;
+        // Add more cases as needed for other event types
+      }
+    });
+
+    // Update stats
+    stats.appOpens = appOpens;
+    stats.cameraAccess = cameraAccess;
+    stats.mediaCaptured = mediaCaptured;
+    // appDropouts remains static at 211
+
+    // Force Svelte to react to the changes
+    stats = { ...stats };
+
+    console.log("✅ Mapped Stats:", {
+      appOpens: stats.appOpens,
+      cameraAccess: stats.cameraAccess,
+      mediaCaptured: stats.mediaCaptured,
+      appDropouts: stats.appDropouts,
+    });
+  }
+
+  // Main function to load filter usage data
+  async function loadFilterUsageData() {
+    console.log("🟡 Starting to load filter usage data...");
+
+    // Get userId from localStorage
+    userId = getUserIdFromLocalStorage();
+
+    if (!userId) {
+      console.error("❌ No user ID found in localStorage");
+      error = "User not authenticated. Please log in again.";
+      loadingDashboard = false;
+      return;
+    }
+
+    console.log("🟡 Calling getClientFilterUsage API with userId:", userId);
+    loadingDashboard = true;
+    error = null;
+
+    try {
+      const response = await getClientFilterUsage(userId);
+      console.log("🟢 getClientFilterUsage API Response:", response);
+
+      if (!response.err) {
+        console.log("📊 Filter Usage Data Result:", response.result);
+
+        if (response.result && Array.isArray(response.result)) {
+          // Process the data and update dashboard stats
+          processDashboardData(response.result);
+        } else {
+          console.warn("⚠️ No result data in API response");
+        }
+      } else {
+        console.error("❌ Error in getClientFilterUsage:", response.err);
+        error =
+          "Failed to load dashboard data: " +
+          (response.err.message || "Unknown error");
+      }
+    } catch (err: any) {
+      console.error("❌ Exception in getClientFilterUsage:", err);
+      error =
+        "Failed to load dashboard data: " + (err.message || "Network error");
+    }
+
+    loadingDashboard = false;
+    console.log("🔚 Finished loading filter usage data");
+  }
+
+  // Call the API when component mounts
+  onMount(async () => {
+    console.log("🚀 Dashboard component mounted, loading data...");
+    await loadFilterUsageData();
+  });
 </script>
 
 <div class="dashboard">
+  <!-- Loading State -->
+  {#if loadingDashboard}
+    <div class="loading-state">
+      <p>📊 Loading dashboard data...</p>
+    </div>
+  {:else if error}
+    <div class="error-state">
+      <p>❌ {error}</p>
+      <button on:click={loadFilterUsageData} class="retry-btn">🔄 Retry</button>
+    </div>
+  {/if}
+
   <!-- Top Stats -->
   <div class="stats-grid">
     <div class="stat-card blue">
@@ -68,20 +204,6 @@
       <h4>Sharing Platforms</h4>
       <div class="chart-content">
         <img src={piechart} alt="Sharing Platforms Chart" class="pie-chart" />
-        <!-- <div class="platform-list">
-          <div class="platform-item">
-            <span class="platform-dot whatsapp"></span>
-            <span>WhatsApp</span>
-          </div>
-          <div class="platform-item">
-            <span class="platform-dot facebook"></span>
-            <span>Facebook</span>
-          </div>
-          <div class="platform-item">
-            <span class="platform-dot others"></span>
-            <span>Others</span>
-          </div>
-        </div> -->
       </div>
     </div>
 
@@ -102,6 +224,40 @@
     display: flex;
     flex-direction: column;
     gap: 2rem;
+  }
+
+  .loading-state,
+  .error-state {
+    text-align: center;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+  }
+
+  .error-state {
+    background: #ffe6e6;
+    color: #d63031;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .retry-btn {
+    background: linear-gradient(135deg, #1a8ef1, #0066cc);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .retry-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(26, 142, 241, 0.3);
   }
 
   .dashboard-header {
@@ -236,6 +392,7 @@
     height: auto;
   }
 
+  /* Rest of your existing styles remain the same */
   .platform-list {
     display: flex;
     flex-direction: column;

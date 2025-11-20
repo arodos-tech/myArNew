@@ -1616,22 +1616,56 @@
     }
   }
 
+  async function logSocialMediaShare(platform: string) {
+    try {
+      console.log(`📱 Logging ${platform} share`);
+      const actualFilterId = getActualFilterId();
+      console.log(`🔑 Filter ID for ${platform} share:`, actualFilterId);
+
+      // Log the specific platform share with filter ID
+      await logEvent(`${platform}Share`, actualFilterId);
+
+      // Also log a general share event with filter ID
+      const eventType = capturedImg ? "photoShare" : "videoShare";
+      await logEvent(eventType, actualFilterId);
+
+      console.log(
+        `✅ Successfully logged ${platform} share with filter ID: ${actualFilterId}`
+      );
+    } catch (error) {
+      console.error(`❌ Failed to log ${platform} share:`, error);
+    }
+  }
+
+  async function logWhatsAppShare() {
+    await logSocialMediaShare("whatsapp");
+  }
+
+  async function logFacebookShare() {
+    await logSocialMediaShare("facebook");
+  }
+
   async function shareContent() {
     console.log("shareContent called", dynamicCaption);
     console.log("capturedImg:", !!capturedImg);
     console.log("recordedVideo:", !!recordedVideo);
 
-    // if (capturedImg) {
-    //   logEvent("photoShare");
-    // } else if (recordedVideo) {
-    //   logEvent("videoShare");
-    // }
+    // ADD THIS: Log general share button click
+    try {
+      const actualFilterId = getActualFilterId();
+      await logEvent("shareButtonClick", actualFilterId);
+      console.log(
+        "✅ Logged share button click with filter ID:",
+        actualFilterId
+      );
+    } catch (error) {
+      console.error("❌ Failed to log share button click:", error);
+    }
 
     try {
       const response = await getFiltersByUser({ userId: currentUserId });
       if (response?.result?.length > 0) {
-        // REMOVE 'const' - update the global variable
-        userFilters = response.result; // ← Remove 'const' here
+        userFilters = response.result;
         console.log("userFilters", userFilters);
         const activeFilter = userFilters.find(
           (a) => a.filter_url === filterUrl
@@ -1690,11 +1724,13 @@
       if (files.length && navigator.share && navigator.canShare?.({ files })) {
         await navigator.share({ title: "MyAR", text: CAPTION, files });
         console.log("Shared via Web Share API with files");
-        if (capturedImg) {
-          await logEvent("photoShare", getActualFilterId());
-        } else if (recordedVideo) {
-          await logEvent("videoShare", getActualFilterId());
-        }
+
+        // ADD THIS: Log web share with filter ID
+        const actualFilterId = getActualFilterId();
+        const eventType = capturedImg ? "photoShare" : "videoShare";
+        await logEvent("webShare", actualFilterId);
+        await logEvent(eventType, actualFilterId);
+
         return;
       }
     } catch (err) {
@@ -1739,6 +1775,9 @@
       // ✅ Fixed WhatsApp section
       const whatsappText = encodeURIComponent(CAPTION);
       const openWhatsApp = async () => {
+        // ADD THIS: Log WhatsApp share attempt
+        await logEvent("whatsappShare", getActualFilterId());
+
         // Try Web Share API if supported
         if (
           files.length &&
@@ -1771,7 +1810,10 @@
       };
 
       // Facebook share (cannot pre-attach files; can only share a URL and text)
-      const openFacebook = () => {
+      const openFacebook = async () => {
+        // ADD THIS: Log Facebook share attempt
+        await logEvent("facebookShare", getActualFilterId());
+
         const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
           window.location.href
         )}&quote=${encodeURIComponent(CAPTION)}`;
@@ -1783,8 +1825,24 @@
       };
 
       // Instagram share (no official web share; open site/app and instruct user)
-      const openInstagram = () => {
+      const openInstagram = async () => {
+        // ADD THIS: Log Instagram share attempt
+        await logEvent("instagramShare", getActualFilterId());
+
         const url = `https://www.instagram.com/`;
+        if (isIOS) {
+          window.location.href = url;
+        } else {
+          window.open(url, "_blank", "width=600,height=500");
+        }
+      };
+
+      // ADD THIS: Twitter share function
+      const openTwitter = async () => {
+        // ADD THIS: Log Twitter share attempt
+        await logEvent("twitterShare", getActualFilterId());
+
+        const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(CAPTION)}`;
         if (isIOS) {
           window.location.href = url;
         } else {
@@ -1803,6 +1861,7 @@
       openWhatsApp();
       openFacebook();
       openInstagram();
+      openTwitter(); // ADD THIS: Also open Twitter
     } catch (err) {
       console.error("Final share error:", err);
       alert("Failed to share content. Please try again.");
@@ -2216,11 +2275,13 @@
           photoUrl={capturedImg}
           imageBlob={capturedImageBlob}
           filename="ar-photo.jpg"
+          onShare={logWhatsAppShare}
         />
         <FacebookShareButton
           quote={dynamicCaption || "Check out my AR photo!"}
           imageBlob={capturedImageBlob}
           filename="ar-photo.jpg"
+          onShare={logFacebookShare}
         />
         <button class="action-btn filters-btn" on:click={showUserFilters}>
           <span class="btn-icon"><img src="/filter.svg" alt="Filters" /></span>
