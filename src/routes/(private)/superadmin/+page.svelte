@@ -54,6 +54,7 @@
   import Filterpage from "./filterpage.svelte";
   import Dashboard from "../../../components/dashboard.svelte";
   import FilterReports from "../../../components/FilterReports.svelte";
+  import { getFilterUsage } from "../../../services/actions/dashboard.js";
 
   let user = null;
   let activeSection = "dashboard";
@@ -120,6 +121,9 @@
   let selectedPlan = null;
   let editingPlan = false;
 
+  let filterUsageData = [];
+  let loadingDashboard = false;
+
   // Create User Form
   let userForm = {
     name: "",
@@ -164,6 +168,10 @@
     totalFilters: 0,
     regularUsers: 0,
     superAdmins: 0,
+    appOpens: 0,
+    cameraAccess: 0,
+    mediaCaptured: 0,
+    appDropouts: 0,
   };
 
   // Dynamic title based on active section
@@ -235,6 +243,76 @@
     loadData();
   });
 
+  $: if (activeSection === "dashboard" && user) {
+    loadFilterUsageData();
+  }
+
+  async function loadFilterUsageData() {
+    console.log("🟡 Calling getFilterUsage API...");
+    loadingDashboard = true;
+    try {
+      const response = await getFilterUsage();
+      console.log("🟢 getFilterUsage API Response:", response);
+
+      if (!response.err) {
+        console.log("📊 Filter Usage Data:", response.result);
+        filterUsageData = response.result || [];
+
+        // Process the data and update dashboard stats
+        processDashboardData(response.result);
+      } else {
+        console.error("❌ Error in getFilterUsage:", response.err);
+        error = "Failed to load dashboard data";
+      }
+    } catch (error) {
+      console.error("❌ Exception in getFilterUsage:", error);
+      error = "Failed to load dashboard data";
+    }
+    loadingDashboard = false;
+  }
+
+  function processDashboardData(apiData) {
+    if (!apiData || !Array.isArray(apiData)) return;
+
+    // Initialize counters
+    let cameraAccessCount = 0;
+    let mediaCapturedCount = 0;
+    let appOpensCount = 0;
+
+    // Process each type of data
+    apiData.forEach((item) => {
+      switch (item.type) {
+        case "cameraAccessAttempt":
+          cameraAccessCount = item.total_logs;
+          break;
+        case "photoCaptured":
+          mediaCapturedCount += item.total_logs;
+          break;
+        case "photoCapture":
+          mediaCapturedCount += item.total_logs;
+          break;
+        case "openLink":
+          appOpensCount = item.total_logs;
+          break;
+        case "qrOpen":
+          appOpensCount += item.total_logs;
+          break;
+        // Add more cases as needed
+      }
+    });
+
+    // Update dashboard stats
+    dashboardStats = {
+      ...dashboardStats,
+      appOpens: appOpensCount,
+      cameraAccess: cameraAccessCount,
+      mediaCaptured: mediaCapturedCount,
+      // App dropouts as static (you can change this if you have actual data)
+      appDropouts: 211, // Static value as per your requirement
+    };
+
+    console.log("📈 Processed Dashboard Stats:", dashboardStats);
+  }
   // Reactive statements for pagination
   $: if (activeSection === "users" && user) {
     loadUsers();
@@ -1023,6 +1101,7 @@
                 <div class="stat-card blue">
                   <div class="stat-content">
                     <h3>App Opens</h3>
+<<<<<<< HEAD
                     <div
                       class="icon-text"
                       style="display: flex; align-items: center; justify-content: space-between;"
@@ -1038,6 +1117,14 @@
                         style="font-size: 1.35rem; margin: 0;"
                       >
                         1,250
+=======
+                    <div class="icon-text">
+                      <img src={mobile} alt="Mobile" class="stat-icon" />
+                      <p class="stat-number">
+                        {loadingDashboard
+                          ? "Loading..."
+                          : dashboardStats.appOpens.toLocaleString()}
+>>>>>>> ec735c2a2b791b491f75cb405bed37159869bf63
                       </p>
                     </div>
                   </div>
@@ -1046,6 +1133,7 @@
                 <div class="stat-card green">
                   <div class="stat-content">
                     <h3>Camera Access</h3>
+<<<<<<< HEAD
                     <div
                       class="icon-text"
                       style="display: flex; align-items: center; justify-content: space-between;"
@@ -1061,6 +1149,14 @@
                         style="font-size: 1.35rem; margin: 0;"
                       >
                         850
+=======
+                    <div class="icon-text">
+                      <img src={camera} alt="Camera" class="stat-icon" />
+                      <p class="stat-number">
+                        {loadingDashboard
+                          ? "Loading..."
+                          : dashboardStats.cameraAccess.toLocaleString()}
+>>>>>>> ec735c2a2b791b491f75cb405bed37159869bf63
                       </p>
                     </div>
                   </div>
@@ -1069,6 +1165,7 @@
                 <div class="stat-card purple">
                   <div class="stat-content">
                     <h3>Media Captured</h3>
+<<<<<<< HEAD
                     <div
                       class="icon-text"
                       style="display: flex; align-items: center; justify-content: space-between;"
@@ -1084,8 +1181,17 @@
                         style="font-size: 1.35rem; margin: 0;"
                       >
                         543
+=======
+                    <div class="icon-text">
+                      <img src={photo} alt="Photo" class="stat-icon" />
+                      <p class="stat-number">
+                        {loadingDashboard
+                          ? "Loading..."
+                          : dashboardStats.mediaCaptured.toLocaleString()}
+>>>>>>> ec735c2a2b791b491f75cb405bed37159869bf63
                       </p>
                     </div>
+                    
                   </div>
                 </div>
 
