@@ -1101,30 +1101,12 @@
                 <div class="stat-card blue">
                   <div class="stat-content">
                     <h3>App Opens</h3>
-<<<<<<< HEAD
-                    <div
-                      class="icon-text"
-                      style="display: flex; align-items: center; justify-content: space-between;"
-                    >
-                      <img
-                        src={mobile}
-                        alt="Mobile"
-                        class="stat-icon"
-                        style="width: 36px; height: 36px;"
-                      />
-                      <p
-                        class="stat-number"
-                        style="font-size: 1.35rem; margin: 0;"
-                      >
-                        1,250
-=======
                     <div class="icon-text">
                       <img src={mobile} alt="Mobile" class="stat-icon" />
                       <p class="stat-number">
                         {loadingDashboard
                           ? "Loading..."
                           : dashboardStats.appOpens.toLocaleString()}
->>>>>>> ec735c2a2b791b491f75cb405bed37159869bf63
                       </p>
                     </div>
                   </div>
@@ -1133,30 +1115,12 @@
                 <div class="stat-card green">
                   <div class="stat-content">
                     <h3>Camera Access</h3>
-<<<<<<< HEAD
-                    <div
-                      class="icon-text"
-                      style="display: flex; align-items: center; justify-content: space-between;"
-                    >
-                      <img
-                        src={camera}
-                        alt="Camera"
-                        class="stat-icon"
-                        style="width: 36px; height: 36px;"
-                      />
-                      <p
-                        class="stat-number"
-                        style="font-size: 1.35rem; margin: 0;"
-                      >
-                        850
-=======
                     <div class="icon-text">
                       <img src={camera} alt="Camera" class="stat-icon" />
                       <p class="stat-number">
                         {loadingDashboard
                           ? "Loading..."
                           : dashboardStats.cameraAccess.toLocaleString()}
->>>>>>> ec735c2a2b791b491f75cb405bed37159869bf63
                       </p>
                     </div>
                   </div>
@@ -1165,30 +1129,12 @@
                 <div class="stat-card purple">
                   <div class="stat-content">
                     <h3>Media Captured</h3>
-<<<<<<< HEAD
-                    <div
-                      class="icon-text"
-                      style="display: flex; align-items: center; justify-content: space-between;"
-                    >
-                      <img
-                        src={photo}
-                        alt="Photo"
-                        class="stat-icon"
-                        style="width: 36px; height: 36px;"
-                      />
-                      <p
-                        class="stat-number"
-                        style="font-size: 1.35rem; margin: 0;"
-                      >
-                        543
-=======
                     <div class="icon-text">
                       <img src={photo} alt="Photo" class="stat-icon" />
                       <p class="stat-number">
                         {loadingDashboard
                           ? "Loading..."
                           : dashboardStats.mediaCaptured.toLocaleString()}
->>>>>>> ec735c2a2b791b491f75cb405bed37159869bf63
                       </p>
                     </div>
                     
