@@ -1106,7 +1106,7 @@
                       <p class="stat-number">
                         {loadingDashboard
                           ? "Loading..."
-                          : dashboardStats.appOpens.toLocaleString()}
+                          : (dashboardStats.appOpens || 0).toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -1120,7 +1120,7 @@
                       <p class="stat-number">
                         {loadingDashboard
                           ? "Loading..."
-                          : dashboardStats.cameraAccess.toLocaleString()}
+                          : (dashboardStats.cameraAccess || 0).toLocaleString()}
                       </p>
                     </div>
                   </div>
@@ -1134,7 +1134,7 @@
                       <p class="stat-number">
                         {loadingDashboard
                           ? "Loading..."
-                          : dashboardStats.mediaCaptured.toLocaleString()}
+                          : (dashboardStats.mediaCaptured || 0).toLocaleString()}
                       </p>
                     </div>
                     
@@ -3467,23 +3467,25 @@
   /* Stat Card */
   .stat-card {
     border-radius: 8px;
-    padding: 0.75rem;
+    padding: 1rem;
     color: #fff;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     min-width: 0;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    min-height: 90px;
   }
 
   /* Title */
   .stat-card h3 {
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     font-weight: 500;
     margin-bottom: 0.6rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin: 0 0 0.6rem 0;
   }
 
   /* Icon + Number Row */
@@ -3494,17 +3496,25 @@
     gap: 0.5rem;
   }
 
-  .stat-card .icon img {
-    width: 20px;
-    height: 20px;
-    opacity: 0.8;
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+    opacity: 0.9;
     flex-shrink: 0;
   }
 
-  .stat-card .icon .text {
-    font-size: 1rem;
+  .stat-number {
+    font-size: 1.2rem;
     font-weight: bold;
     white-space: nowrap;
+    margin: 0;
+  }
+
+  .icon-text {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.3rem;
   }
 
   /* Color Themes */
