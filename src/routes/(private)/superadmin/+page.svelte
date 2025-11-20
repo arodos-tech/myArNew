@@ -241,6 +241,9 @@
     }
 
     loadData();
+    
+    // Always load dashboard data on mount
+    setTimeout(() => loadFilterUsageData(), 500);
   });
 
   $: if (activeSection === "dashboard" && user) {
@@ -313,6 +316,20 @@
 
     console.log("📈 Processed Dashboard Stats:", dashboardStats);
   }
+
+  function loadMockData() {
+    console.log("🧪 Loading mock data for testing...");
+    const mockData = [
+      { type: "openLink", total_logs: 1250 },
+      { type: "cameraAccessAttempt", total_logs: 890 },
+      { type: "photoCaptured", total_logs: 645 },
+      { type: "photoCapture", total_logs: 123 }
+    ];
+    
+    filterUsageData = mockData;
+    processDashboardData(mockData);
+    console.log("✅ Mock data loaded successfully");
+  }
   // Reactive statements for pagination
   $: if (activeSection === "users" && user) {
     loadUsers();
@@ -347,6 +364,7 @@
 
   function updateDashboardStats() {
     dashboardStats = {
+      ...dashboardStats,
       totalUsers: totalUsers,
       totalFilters: totalFilters,
       regularUsers: users.filter((u) => u.role === "user").length,
@@ -1096,6 +1114,7 @@
           {#if activeSection === "dashboard"}
             <!-- Dashboard Stats -->
             <div class="dashboard">
+
               <!-- Top Stats -->
               <div class="stats-grid">
                 <div class="stat-card blue">
