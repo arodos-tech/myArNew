@@ -18,6 +18,11 @@
   let activeSection = "dashboard";
   let showImageUpload = false;
   let showProfile = false; // Add profile visibility state
+  let sidebarCollapsed = false;
+
+  function handleSidebarToggle(collapsed) {
+    sidebarCollapsed = collapsed;
+  }
 
   let error = "";
   let success = "";
@@ -139,9 +144,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 </svelte:head>
 
-<div class="app-container">
+<div class="app-container" class:sidebar-collapsed={sidebarCollapsed}>
   <Header onProfileClick={handleProfileClick} />
-  <Sidebar {activeSection} {switchSection} {logout} />
+  <Sidebar
+    {activeSection}
+    {switchSection}
+    {logout}
+    bind:isCollapsed={sidebarCollapsed}
+  />
 
   <div class="main-layout">
     <main class="main-content">
@@ -157,7 +167,6 @@
           <div class="welcome-actions">
             <button class="action-btn primary" on:click={handleCreateFilter}>
               <span class="btn-icon"><Plus /></span>
-              Create Filter
             </button>
           </div>
         </div>
@@ -225,9 +234,11 @@
     padding: 2rem;
     overflow-y: auto;
     margin-left: 250px;
-    width: calc(100vw - 250px);
-    box-sizing: border-box;
     transition: all 0.3s ease;
+  }
+
+  .sidebar-collapsed .main-content {
+    margin-left: 60px;
   }
 
   .section-placeholder {
