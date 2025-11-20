@@ -1162,7 +1162,7 @@
 
                 <div class="stat-card red">
                   <div class="stat-content">
-                    <h3>App Dropouts</h3>
+                    <h3>App Share</h3>
                     <div
                       class="icon-text"
                       style="display: flex; align-items: center; justify-content: space-between;"
