@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
+  import { saveLogs } from '../../../../services/actions/logs.js';
   let videoRef;
   let canvasRef;
   let recording = false;
@@ -14,16 +15,58 @@
   onMount(async () => {
     const id = $page.params.id;
     filterUrl = sessionStorage.getItem('filter_' + id);
+    
+    // Log page access
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    console.log('Device detected:', isMobile ? 'Mobile' : 'Desktop');
+    
+    try {
+      await saveLogs({
+        user: 'test_user',
+        type: isMobile ? 'mobile_open' : 'desktop_open',
+        timestamp: new Date().toISOString(),
+        session: 'test_session',
+        filter: id
+      });
+      console.log('Access logged successfully');
+    } catch (error) {
+      console.error('Logging failed:', error);
+    }
+    
     await startCamera();
   });
 
   async function startCamera() {
+    try {
+      await saveLogs({
+        user: 'test_user',
+        type: 'camera_access',
+        timestamp: new Date().toISOString(),
+        session: 'test_session',
+        filter: $page.params.id
+      });
+    } catch (error) {
+      console.error('Camera access logging failed:', error);
+    }
+    
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     videoRef.srcObject = stream;
     await videoRef.play();
   }
 
-  function capturePhoto() {
+  async function capturePhoto() {
+    try {
+      await saveLogs({
+        user: 'test_user',
+        type: 'media_captured',
+        timestamp: new Date().toISOString(),
+        session: 'test_session',
+        filter: $page.params.id
+      });
+    } catch (error) {
+      console.error('Media capture logging failed:', error);
+    }
+    
     const ctx = canvasRef.getContext('2d');
     ctx.drawImage(videoRef, 0, 0, 640, 480);
     if (filterUrl) {

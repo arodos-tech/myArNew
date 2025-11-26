@@ -69,6 +69,8 @@
   // let dynamicCaption = "Festive mood: ON 🔥 Can't wait for #ASoBPuja"; // Default fallback
   let dynamicCaption = "";
   let capturedImageBlob = null;
+  let debugInfo = '';
+  let mobileStatus = '';
 
   // Pin MediaPipe CDN version to avoid asset mismatches
   const MEDIAPIPE_FACE_MESH_VERSION = "0.4.1633559619";
@@ -136,6 +138,26 @@
     } else {
       console.log("No user ID found, skipping user filters load");
     }
+    // Log mobile or desktop access
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    debugInfo = `Device: ${isMobile ? 'MOBILE' : 'DESKTOP'}\nUA: ${navigator.userAgent.substring(0, 50)}...`;
+    
+    try {
+      if (isMobile) {
+        mobileStatus = '📱 MOBILE DETECTED - Logging...';
+        await logEvent("mobile_open", getActualFilterId());
+        debugInfo += '\n✅ Mobile logged';
+        mobileStatus = '📱 MOBILE LOGGED ✅';
+      } else {
+        mobileStatus = '💻 Desktop detected';
+        await logEvent("desktop_open", getActualFilterId());
+        debugInfo += '\n✅ Desktop logged';
+      }
+    } catch (error) {
+      debugInfo += `\n❌ Error: ${error.message}`;
+      mobileStatus = '❌ Logging failed';
+    }
+    
     await logEvent("openLink", getActualFilterId());
     await logEvent("cameraAccessAttempt", getActualFilterId());
 
@@ -2358,6 +2380,20 @@
           <div class="filter-loading-indicator">
             <div class="loading-spinner"></div>
             <span class="loading-text">Processing Video...</span>
+          </div>
+        {/if}
+        
+        <!-- Mobile Status -->
+        {#if mobileStatus}
+          <div style="position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.9);color:white;padding:15px;border-radius:8px;font-size:16px;font-weight:bold;z-index:999;border:2px solid #4CAF50;">
+            {mobileStatus}
+          </div>
+        {/if}
+        
+        <!-- Debug Info -->
+        {#if debugInfo}
+          <div style="position:absolute;top:80px;left:10px;background:rgba(0,0,0,0.8);color:white;padding:10px;border-radius:5px;font-size:12px;white-space:pre-line;z-index:999;">
+            {debugInfo}
           </div>
         {/if}
       </div>
