@@ -9,3 +9,14 @@ export async function getFilterUsage() {
 
   return response;
 }
+
+export async function getClientFilterUsage(user) {
+  const response = await Api.sql("/filter-usage-client", {
+    body: {
+      sql: "SELECT type, COUNT(*) AS total_logs FROM log_datas where user= ? GROUP BY type",
+      params: [user],
+    },
+  });
+
+  return response;
+}
