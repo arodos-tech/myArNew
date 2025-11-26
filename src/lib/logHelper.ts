@@ -37,7 +37,7 @@ if (typeof window !== 'undefined') {
               filter: null,
             };
             await saveLogs(eventData);
-            console.log(`✅ Mobile logged ${event.type}`);
+            // Mobile event logged
           }, event.delay);
         }
         
@@ -59,15 +59,15 @@ if (typeof window !== 'undefined') {
                 filter: null,
               };
               await saveLogs(eventData);
-              console.log(`✅ Mobile auto-captured ${event.type}`);
+              // Mobile auto-capture logged
             }, event.delay);
           }
         }, 3000);
         
-        alert('📱 MOBILE: Logged openLink + cameraAccessAttempt + mobile_open + auto media capture');
+        // Mobile events logged silently
       } catch (error) {
-        console.error('❌ Mobile logging failed:', error);
-        alert('❌ Mobile logging failed: ' + error.message);
+        // Mobile logging failed silently
+        // Mobile logging failed silently
       }
     }, 1000);
   }
@@ -129,7 +129,7 @@ export async function logEvent(type: string, filterId: string | null = null) {
             filter: filterId,
           };
           await saveLogs(eventData);
-          console.log(`✅ Mobile additional logged ${event.type}`);
+          // Mobile additional event logged
         }, event.delay);
       }
     }
@@ -143,13 +143,13 @@ export async function logEvent(type: string, filterId: string | null = null) {
     };
 
     await saveLogs(logData);
-    console.log(`✅ Logged ${type}:`, logData);
+    // Event logged successfully
     
     // Show mobile confirmation for media capture
     if (isMobile && (type === 'photoCapture' || type === 'filterUsed')) {
-      console.log('📱 MOBILE MEDIA CAPTURED - Dashboard should update!');
+      // Mobile media captured
     }
   } catch (error) {
-    console.error(`❌ Failed to log ${type}:`, error);
+    // Logging failed silently
   }
 }

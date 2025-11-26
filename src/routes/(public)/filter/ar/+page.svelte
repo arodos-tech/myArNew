@@ -138,24 +138,17 @@
     } else {
       console.log("No user ID found, skipping user filters load");
     }
-    // Log mobile or desktop access
+    // Silent device detection and logging
     const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    debugInfo = `Device: ${isMobile ? 'MOBILE' : 'DESKTOP'}\nUA: ${navigator.userAgent.substring(0, 50)}...`;
     
     try {
       if (isMobile) {
-        mobileStatus = '📱 MOBILE DETECTED - Logging...';
         await logEvent("mobile_open", getActualFilterId());
-        debugInfo += '\n✅ Mobile logged';
-        mobileStatus = '📱 MOBILE LOGGED ✅';
       } else {
-        mobileStatus = '💻 Desktop detected';
         await logEvent("desktop_open", getActualFilterId());
-        debugInfo += '\n✅ Desktop logged';
       }
     } catch (error) {
-      debugInfo += `\n❌ Error: ${error.message}`;
-      mobileStatus = '❌ Logging failed';
+      // Logging failed silently
     }
     
     await logEvent("openLink", getActualFilterId());
@@ -2383,19 +2376,7 @@
           </div>
         {/if}
         
-        <!-- Mobile Status -->
-        {#if mobileStatus}
-          <div style="position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.9);color:white;padding:15px;border-radius:8px;font-size:16px;font-weight:bold;z-index:999;border:2px solid #4CAF50;">
-            {mobileStatus}
-          </div>
-        {/if}
-        
-        <!-- Debug Info -->
-        {#if debugInfo}
-          <div style="position:absolute;top:80px;left:10px;background:rgba(0,0,0,0.8);color:white;padding:10px;border-radius:5px;font-size:12px;white-space:pre-line;z-index:999;">
-            {debugInfo}
-          </div>
-        {/if}
+
       </div>
 
       <!-- Bottom Controls -->
