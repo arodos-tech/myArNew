@@ -20,7 +20,7 @@
     appOpens: 0,
     cameraAccess: 0,
     mediaCaptured: 0,
-    appDropouts: 211, // Static data for app dropouts
+    appShare: 0,
   };
 
   // Function to get user ID from localStorage
@@ -53,9 +53,11 @@
     let appOpens = 0;
     let cameraAccess = 0;
     let mediaCaptured = 0;
+    let appShare = 0;
 
     // Map API data to our stats
     apiData.forEach((item) => {
+      console.log(`📊 Processing event: ${item.type} with ${item.total_logs} logs`);
       switch (item.type) {
         case "openLink":
           appOpens += item.total_logs;
@@ -67,7 +69,13 @@
         case "photoCaptured":
           mediaCaptured += item.total_logs;
           break;
-        // Add more cases as needed for other event types
+        case "shareOpened":
+        case "share":
+          console.log(`🎯 Found share event: ${item.type} with ${item.total_logs} logs`);
+          appShare += item.total_logs;
+          break;
+        default:
+          console.log(`❓ Unknown event type: ${item.type}`);
       }
     });
 
@@ -75,7 +83,7 @@
     stats.appOpens = appOpens;
     stats.cameraAccess = cameraAccess;
     stats.mediaCaptured = mediaCaptured;
-    // appDropouts remains static at 211
+    stats.appShare = appShare;
 
     // Force Svelte to react to the changes
     stats = { ...stats };
@@ -84,8 +92,10 @@
       appOpens: stats.appOpens,
       cameraAccess: stats.cameraAccess,
       mediaCaptured: stats.mediaCaptured,
-      appDropouts: stats.appDropouts,
+      appShare: stats.appShare,
     });
+    
+    console.log("📋 All event types found:", apiData.map(item => item.type));
   }
 
   // Main function to load filter usage data
@@ -189,10 +199,10 @@
 
     <div class="stat-card red">
       <div class="stat-content">
-        <h3>App Dropouts</h3>
+        <h3>App Share</h3>
         <div class="icon-text">
           <img src={cross} alt="Cross" class="stat-icon" />
-          <p class="stat-number">{stats.appDropouts.toLocaleString()}</p>
+          <p class="stat-number">{stats.appShare.toLocaleString()}</p>
         </div>
       </div>
     </div>

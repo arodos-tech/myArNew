@@ -2,6 +2,7 @@
   import { page } from '$app/stores';
   import { onMount } from 'svelte';
   import { saveLogs } from '../../../../services/actions/logs.js';
+  import { logEvent } from '$lib/logHelper.js';
   let videoRef;
   let canvasRef;
   let recording = false;
@@ -128,7 +129,7 @@
     <img src={capturedImg} width="320" />
     <br />
     <a href={capturedImg} download="rongcam-photo.png">Download Photo</a>
-    <a href={`https://wa.me/?text=Check%20my%20AR%20photo!&url=${encodeURIComponent(capturedImg)}`} target="_blank">Share on WhatsApp</a>
+    <a href={`https://wa.me/?text=Check%20my%20AR%20photo!&url=${encodeURIComponent(capturedImg)}`} target="_blank" on:click={() => logEvent('shareOpened', $page.params.id)}>Share on WhatsApp</a>
   {/if}
   {#if capturedVideo}
     <h2>Video Preview</h2>

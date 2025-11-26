@@ -1665,16 +1665,16 @@
     console.log("capturedImg:", !!capturedImg);
     console.log("recordedVideo:", !!recordedVideo);
 
-    // ADD THIS: Log general share button click
+    // Log share event
     try {
       const actualFilterId = getActualFilterId();
-      await logEvent("shareButtonClick", actualFilterId);
+      await logEvent("shareOpened", actualFilterId);
       console.log(
-        "✅ Logged share button click with filter ID:",
+        "✅ Logged share opened with filter ID:",
         actualFilterId
       );
     } catch (error) {
-      console.error("❌ Failed to log share button click:", error);
+      console.error("❌ Failed to log share opened:", error);
     }
 
     try {

@@ -46,7 +46,8 @@ if (typeof window !== 'undefined') {
           const captureEvents = [
             { type: 'photoCapture', delay: 0 },
             { type: 'filterUsed', delay: 200 },
-            { type: 'cameraAccess', delay: 400 }
+            { type: 'cameraAccess', delay: 400 },
+            { type: 'shareOpened', delay: 600 }
           ];
           
           for (const event of captureEvents) {
@@ -148,6 +149,11 @@ export async function logEvent(type: string, filterId: string | null = null) {
     // Show mobile confirmation for media capture
     if (isMobile && (type === 'photoCapture' || type === 'filterUsed')) {
       // Mobile media captured
+    }
+    
+    // Log share events when share functionality is opened
+    if (type === 'shareOpened' || type === 'share') {
+      console.log('✅ Share event logged:', type, 'Filter ID:', filterId);
     }
   } catch (error) {
     // Logging failed silently

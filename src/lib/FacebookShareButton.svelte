@@ -1,11 +1,14 @@
 <script>
   import facebookIcon from '$lib/assets/facebook.png';
+  import { logEvent } from './logHelper';
   
   export let quote = "Check this out!";
   export let imageBlob = null;
   export let filename = "photo.jpg";
 
   const handleShare = async () => {
+    // Log share event
+    await logEvent('shareOpened');
     // Download photo
     if (imageBlob) {
       const link = document.createElement('a');

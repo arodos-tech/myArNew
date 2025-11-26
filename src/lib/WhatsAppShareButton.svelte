@@ -1,5 +1,6 @@
 <script>
   import whatsappIcon from '$lib/assets/whatsapp.png';
+  import { logEvent } from './logHelper';
   
   export let text = "Check this out!";
 
@@ -7,6 +8,8 @@
   export let filename = "photo.jpg";
 
   const handleShare = async () => {
+    // Log share event
+    await logEvent('shareOpened');
     // Skip Web Share API - go directly to WhatsApp
     if (imageBlob) {
       const link = document.createElement('a');
