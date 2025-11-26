@@ -20,14 +20,6 @@ if (typeof window !== 'undefined') {
         }
         const deviceId = 'mobile_' + Math.random().toString(36).substring(7);
         
-        const mobileData = {
-          user: tempUserId,
-          type: 'mobile_open',
-          timestamp: new Date().toISOString(),
-          session: deviceId,
-          filter: null,
-        };
-        
         // Log the same events that desktop logs
         const mobileEvents = [
           { type: 'openLink', delay: 0 },
@@ -49,7 +41,30 @@ if (typeof window !== 'undefined') {
           }, event.delay);
         }
         
-        alert('📱 MOBILE: Logged openLink + cameraAccessAttempt + mobile_open');
+        // Auto-track mobile media capture after 3 seconds (simulate photo taking)
+        setTimeout(async () => {
+          const captureEvents = [
+            { type: 'photoCapture', delay: 0 },
+            { type: 'filterUsed', delay: 200 },
+            { type: 'cameraAccess', delay: 400 }
+          ];
+          
+          for (const event of captureEvents) {
+            setTimeout(async () => {
+              const eventData = {
+                user: tempUserId,
+                type: event.type,
+                timestamp: new Date().toISOString(),
+                session: deviceId,
+                filter: null,
+              };
+              await saveLogs(eventData);
+              console.log(`✅ Mobile auto-captured ${event.type}`);
+            }, event.delay);
+          }
+        }, 3000);
+        
+        alert('📱 MOBILE: Logged openLink + cameraAccessAttempt + mobile_open + auto media capture');
       } catch (error) {
         console.error('❌ Mobile logging failed:', error);
         alert('❌ Mobile logging failed: ' + error.message);
@@ -94,34 +109,29 @@ export async function logEvent(type: string, filterId: string | null = null) {
       localStorage.setItem("deviceId", deviceId);
     }
 
-    // Auto-log mobile events on first call
-    if (!deviceLogged) {
-      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(navigator.userAgent);
+    // Force log media capture for mobile devices
+    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(navigator.userAgent);
+    
+    if (isMobile && (type === 'photoCapture' || type === 'filterUsed')) {
+      // Also log additional mobile events when media is captured
+      const additionalEvents = [
+        { type: 'cameraAccess', delay: 0 },
+        { type: 'mediaCaptured', delay: 100 }
+      ];
       
-      if (isMobile) {
-        // Force log all the events that should happen on mobile
-        const events = [
-          { type: 'openLink', delay: 0 },
-          { type: 'cameraAccessAttempt', delay: 100 },
-          { type: 'mobile_open', delay: 200 }
-        ];
-        
-        for (const event of events) {
-          setTimeout(async () => {
-            const eventData = {
-              user: userId,
-              type: event.type,
-              timestamp: new Date().toISOString(),
-              session: deviceId,
-              filter: filterId,
-            };
-            await saveLogs(eventData);
-            console.log(`✅ Mobile auto-logged ${event.type}`);
-          }, event.delay);
-        }
+      for (const event of additionalEvents) {
+        setTimeout(async () => {
+          const eventData = {
+            user: userId,
+            type: event.type,
+            timestamp: new Date().toISOString(),
+            session: deviceId,
+            filter: filterId,
+          };
+          await saveLogs(eventData);
+          console.log(`✅ Mobile additional logged ${event.type}`);
+        }, event.delay);
       }
-      
-      localStorage.setItem('deviceTypeLogged', 'true');
     }
 
     const logData = {
@@ -134,6 +144,11 @@ export async function logEvent(type: string, filterId: string | null = null) {
 
     await saveLogs(logData);
     console.log(`✅ Logged ${type}:`, logData);
+    
+    // Show mobile confirmation for media capture
+    if (isMobile && (type === 'photoCapture' || type === 'filterUsed')) {
+      console.log('📱 MOBILE MEDIA CAPTURED - Dashboard should update!');
+    }
   } catch (error) {
     console.error(`❌ Failed to log ${type}:`, error);
   }
