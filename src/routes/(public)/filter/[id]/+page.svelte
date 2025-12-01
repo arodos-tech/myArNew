@@ -12,42 +12,67 @@
   let capturedVideo: string | null = null;
   let filterUrl: string | null = null;
 
+  // Get real user ID
+  function getUserId() {
+    try {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        return user.id || 'anonymous';
+      }
+    } catch (err) {
+      console.error('Error getting user ID:', err);
+    }
+    return 'anonymous';
+  }
+
+  // Prevent duplicate logging
+  let hasLoggedAccess = false;
+  let hasLoggedCamera = false;
+
   // Load filter from sessionStorage
   onMount(async () => {
     const id = $page.params.id;
     filterUrl = sessionStorage.getItem('filter_' + id);
     
-    // Log page access
-    const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    console.log('Device detected:', isMobile ? 'Mobile' : 'Desktop');
-    
-    try {
-      await saveLogs({
-        user: 'test_user',
-        type: isMobile ? 'mobile_open' : 'desktop_open',
-        timestamp: new Date().toISOString(),
-        session: 'test_session',
-        filter: id
-      });
-      console.log('Access logged successfully');
-    } catch (error) {
-      console.error('Logging failed:', error);
+    // Log page access only once
+    if (!hasLoggedAccess) {
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      console.log('Device detected:', isMobile ? 'Mobile' : 'Desktop');
+      
+      try {
+        await saveLogs({
+          user: getUserId(),
+          type: 'openLink',
+          timestamp: new Date().toISOString(),
+          session: 'filter_session',
+          filter: id
+        });
+        hasLoggedAccess = true;
+        console.log('Access logged successfully');
+      } catch (error) {
+        console.error('Logging failed:', error);
+      }
     }
     
     await startCamera();
   });
 
   async function startCamera() {
-    try {
-      await saveLogs({
-        user: 'test_user',
-        type: 'camera_access',
-        timestamp: new Date().toISOString(),
-        session: 'test_session',
-        filter: $page.params.id
-      });
-    } catch (error) {
-      console.error('Camera access logging failed:', error);
+    // Log camera access only once
+    if (!hasLoggedCamera) {
+      try {
+        await saveLogs({
+          user: getUserId(),
+          type: 'cameraAccessAttempt',
+          timestamp: new Date().toISOString(),
+          session: 'filter_session',
+          filter: $page.params.id
+        });
+        hasLoggedCamera = true;
+      } catch (error) {
+        console.error('Camera access logging failed:', error);
+      }
     }
     
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -58,10 +83,10 @@
   async function capturePhoto() {
     try {
       await saveLogs({
-        user: 'test_user',
-        type: 'media_captured',
+        user: getUserId(),
+        type: 'photoCapture',
         timestamp: new Date().toISOString(),
-        session: 'test_session',
+        session: 'filter_session',
         filter: $page.params.id
       });
     } catch (error) {
@@ -129,7 +154,19 @@
     <img src={capturedImg} width="320" />
     <br />
     <a href={capturedImg} download="rongcam-photo.png">Download Photo</a>
-    <a href={`https://wa.me/?text=Check%20my%20AR%20photo!&url=${encodeURIComponent(capturedImg)}`} target="_blank" on:click={() => logEvent('shareOpened', $page.params.id)}>Share on WhatsApp</a>
+    <a href={`https://wa.me/?text=Check%20my%20AR%20photo!&url=${encodeURIComponent(capturedImg)}`} target="_blank" on:click={async () => {
+      try {
+        await saveLogs({
+          user: getUserId(),
+          type: 'shareOpened',
+          timestamp: new Date().toISOString(),
+          session: 'filter_session',
+          filter: $page.params.id
+        });
+      } catch (error) {
+        console.error('Share logging failed:', error);
+      }
+    }}>Share on WhatsApp</a>
   {/if}
   {#if capturedVideo}
     <h2>Video Preview</h2>

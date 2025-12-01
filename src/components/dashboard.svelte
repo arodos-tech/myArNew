@@ -10,8 +10,8 @@
   import graph from "$lib/assets/SVG (4).png";
   import FilterUsageData from "$lib/FilterUsageData.svelte";
   import { getClientFilterUsage } from "/src/services/actions/dashboard.js";
-  import { Chart, registerables } from 'chart.js';
-  
+  import { Chart, registerables } from "chart.js";
+
   Chart.register(...registerables);
 
   let loadingDashboard = false;
@@ -48,6 +48,12 @@
     }
   }
 
+  // Function to refresh dashboard
+  function refreshDashboard() {
+    console.log("🔄 Refreshing dashboard data...");
+    location.reload();
+  }
+
   // Process dashboard data and map API response to stats
   function processDashboardData(apiData: any[]) {
     console.log("🔄 Processing dashboard data...", apiData);
@@ -60,7 +66,9 @@
 
     // Map API data to our stats
     apiData.forEach((item) => {
-      console.log(`📊 Processing event: ${item.type} with ${item.total_logs} logs`);
+      console.log(
+        `📊 Processing event: ${item.type} with ${item.total_logs} logs`,
+      );
       switch (item.type) {
         case "openLink":
           appOpens += item.total_logs;
@@ -74,7 +82,9 @@
           break;
         case "shareOpened":
         case "share":
-          console.log(`🎯 Found share event: ${item.type} with ${item.total_logs} logs`);
+          console.log(
+            `🎯 Found share event: ${item.type} with ${item.total_logs} logs`,
+          );
           appShare += item.total_logs;
           break;
         default:
@@ -97,8 +107,13 @@
       mediaCaptured: stats.mediaCaptured,
       appShare: stats.appShare,
     });
-    
-    console.log("📋 All event types found:", apiData.map(item => item.type));
+
+    console.log(
+      "📋 All event types found:",
+      apiData.map((item) => item.type),
+    );
+
+    // No caching needed - stats are now accurate without artificial increments
   }
 
   // Main function to load filter usage data
@@ -150,7 +165,7 @@
 
   // Processed filter data for FilterUsageData component
   let processedFilterData = [];
-  
+
   // Chart canvas references
   let pieChartCanvas;
   let barChartCanvas;
@@ -164,20 +179,24 @@
       if (!userId) return;
 
       // Import getFilters function
-      const { getFilters } = await import('../services/actions/filter.js');
+      const { getFilters } = await import("../services/actions/filter.js");
       const response = await getFilters({ search: `user:${userId}` });
-      
+
       if (!response.err && response.result) {
-        processedFilterData = response.result.map(filter => ({
+        processedFilterData = response.result.map((filter) => ({
           name: filter.name,
           filter_url: filter.filter_url,
-          times_used: filter.times_used || filter.usage_count || Math.floor(Math.random() * 500) + 50,
+          times_used:
+            filter.times_used ||
+            filter.usage_count ||
+            Math.floor(Math.random() * 500) + 50,
           user_stat: filter.user_stat || Math.floor(Math.random() * 200) + 20,
-          media_captured: filter.media_captured || Math.floor(Math.random() * 300) + 30
+          media_captured:
+            filter.media_captured || Math.floor(Math.random() * 300) + 30,
         }));
       }
     } catch (error) {
-      console.error('Error loading filters for usage data:', error);
+      console.error("Error loading filters for usage data:", error);
     }
   }
 
@@ -200,18 +219,20 @@
     //     }
     //   });
     // }
-    
+
     // Bar Chart for Top Performing Filters
     if (barChartCanvas && processedFilterData.length > 0) {
       barChart = new Chart(barChartCanvas, {
-        type: 'bar',
+        type: "bar",
         data: {
-          labels: processedFilterData.map(f => f.name || 'Untitled'),
-          datasets: [{
-            label: 'Times Used',
-            data: processedFilterData.map(f => f.times_used || 0),
-            backgroundColor: '#9CA3AF'
-          }]
+          labels: processedFilterData.map((f) => f.name || "Untitled"),
+          datasets: [
+            {
+              label: "Times Used",
+              data: processedFilterData.map((f) => f.times_used || 0),
+              backgroundColor: "#9CA3AF",
+            },
+          ],
         },
         options: {
           responsive: true,
@@ -220,23 +241,23 @@
             y: {
               beginAtZero: true,
               ticks: {
-                color: '#374151'
-              }
+                color: "#374151",
+              },
             },
             x: {
               ticks: {
-                color: '#374151'
-              }
-            }
+                color: "#374151",
+              },
+            },
           },
           plugins: {
             legend: {
               labels: {
-                color: '#374151'
-              }
-            }
-          }
-        }
+                color: "#374151",
+              },
+            },
+          },
+        },
       });
     }
   }
@@ -244,9 +265,12 @@
   // Call the API when component mounts
   onMount(async () => {
     console.log("🚀 Dashboard component mounted, loading data...");
+
+    // Always load fresh data - no caching on refresh
+    // This prevents artificial stat increments while allowing real refreshes
     await loadFilterUsageData();
     await loadFiltersForUsageData();
-    
+
     // Initialize charts after data is loaded
     setTimeout(initializeCharts, 100);
   });
@@ -264,6 +288,13 @@
       <button on:click={loadFilterUsageData} class="retry-btn">🔄 Retry</button>
     </div>
   {/if}
+
+  <!-- Refresh Controls (Hidden) -->
+  <!-- <div class="debug-controls">
+    <button on:click={refreshDashboard} class="cache-btn">
+      🔄 Refresh Dashboard
+    </button>
+  </div> -->
 
   <!-- Top Stats -->
   <div class="stats-grid">
@@ -368,6 +399,29 @@
   .retry-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(26, 142, 241, 0.3);
+  }
+
+  .debug-controls {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+
+  .cache-btn {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+  }
+
+  .cache-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
   }
 
   .dashboard-header {
