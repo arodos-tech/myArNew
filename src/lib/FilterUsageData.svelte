@@ -1,27 +1,5 @@
 <script>
-  const filterData = [
-    {
-      name: "Vintage",
-      timesUsed: 150,
-      users: 120,
-      mediaCaptured: 100,
-      thumbnail: "vintage"
-    },
-    {
-      name: "Black & White",
-      timesUsed: 200,
-      users: 180,
-      mediaCaptured: 160,
-      thumbnail: "bw"
-    },
-    {
-      name: "Sepia",
-      timesUsed: 100,
-      users: 90,
-      mediaCaptured: 80,
-      thumbnail: "sepia"
-    }
-  ];
+  export let filterUsageData = [];
 </script>
 
 <div class="dashboard-container">
@@ -35,15 +13,15 @@
       <div class="header-cell">MEDIA CAPTURED</div>
     </div>
     
-    {#each filterData as filter, index}
-      <div class="table-row" class:last-row={index === filterData.length - 1}>
+    {#each filterUsageData as filter, index}
+      <div class="table-row" class:last-row={index === filterUsageData.length - 1}>
         <div class="data-cell filter-name">
-          <div class="thumbnail {filter.thumbnail}"></div>
-          <span>{filter.name}</span>
+          <div class="thumbnail" style="background-image: url({filter.filter_url})"></div>
+          <span>{filter.name || 'Untitled Filter'}</span>
         </div>
-        <div class="data-cell">{filter.timesUsed}</div>
-        <div class="data-cell">{filter.users}</div>
-        <div class="data-cell">{filter.mediaCaptured}</div>
+        <div class="data-cell">{filter.times_used || filter.chart_stat || 0}</div>
+        <div class="data-cell">{filter.user_stat || 0}</div>
+        <div class="data-cell">{filter.media_captured || 0}</div>
       </div>
     {/each}
   </div>
@@ -125,16 +103,11 @@
     flex-shrink: 0;
   }
 
-  .thumbnail.vintage {
-    background: linear-gradient(135deg, #ff6b35, #f7931e);
-  }
-
-  .thumbnail.bw {
-    background: linear-gradient(135deg, #000000, #ffffff);
-  }
-
-  .thumbnail.sepia {
-    background: linear-gradient(135deg, #8b4513, #daa520);
+  .thumbnail {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #f7fafc;
   }
 
 
