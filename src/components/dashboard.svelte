@@ -10,6 +10,7 @@
   import graph from "$lib/assets/SVG (4).png";
   import FilterUsageData from "$lib/FilterUsageData.svelte";
   import { getClientFilterUsage } from "/src/services/actions/dashboard.js";
+  import { getClientAllFilterUsage } from "/src/services/actions/dashboard.js";
   import { Chart, registerables } from "chart.js";
 
   Chart.register(...registerables);
@@ -48,6 +49,41 @@
     }
   }
 
+  async function loadTopFilterUsage() {
+    try {
+      const userId = getUserIdFromLocalStorage();
+      if (!userId) return;
+
+      // 1️⃣ Fetch API result
+      const usageRes = await getClientAllFilterUsage(userId);
+
+      if (!usageRes || usageRes.err) {
+        console.error("Error loading usage:", usageRes);
+        return;
+      }
+
+      const usageData = usageRes.result || [];
+
+      // 2️⃣ Sort by total_logs → take TOP 7
+      const top7 = usageData
+        .sort((a, b) => Number(b.total_logs) - Number(a.total_logs))
+        .slice(0, 7);
+
+      // 3️⃣ DIRECTLY USE API DATA (no 2nd API call)
+      processedFilterDataChart = top7.map((item) => ({
+        name: item.name || "Untitled",
+        times_used: Number(item.total_logs) || 0,
+        media_captured: Number(item.photo_capture_count) || 0,
+      }));
+
+      console.log("🔥 Processed Chart Data:", processedFilterDataChart);
+
+      initializeBarChart();
+    } catch (err) {
+      console.error("Error loading filter usage:", err);
+    }
+  }
+
   // Function to refresh dashboard
   function refreshDashboard() {
     console.log("🔄 Refreshing dashboard data...");
@@ -67,7 +103,7 @@
     // Map API data to our stats
     apiData.forEach((item) => {
       console.log(
-        `📊 Processing event: ${item.type} with ${item.total_logs} logs`,
+        `📊 Processing event: ${item.type} with ${item.total_logs} logs`
       );
       switch (item.type) {
         case "openLink":
@@ -83,7 +119,7 @@
         case "shareOpened":
         case "share":
           console.log(
-            `🎯 Found share event: ${item.type} with ${item.total_logs} logs`,
+            `🎯 Found share event: ${item.type} with ${item.total_logs} logs`
           );
           appShare += item.total_logs;
           break;
@@ -110,7 +146,7 @@
 
     console.log(
       "📋 All event types found:",
-      apiData.map((item) => item.type),
+      apiData.map((item) => item.type)
     );
 
     // No caching needed - stats are now accurate without artificial increments
@@ -171,6 +207,7 @@
   let barChartCanvas;
   let pieChart;
   let barChart;
+  let processedFilterDataChart = [];
 
   // Function to load and process filter data
   async function loadFiltersForUsageData() {
@@ -183,7 +220,7 @@
       const response = await getFilters({ search: `user:${userId}` });
 
       if (!response.err && response.result) {
-        processedFilterData = response.result.map((filter) => ({
+        processedFilterDataChart = response.result.map((filter) => ({
           name: filter.name,
           filter_url: filter.filter_url,
           times_used:
@@ -200,79 +237,60 @@
     }
   }
 
-  // Initialize charts
-  function initializeCharts() {
-    // Pie Chart for Sharing Platforms
-    // if (pieChartCanvas) {
-    //   pieChart = new Chart(pieChartCanvas, {
-    //     type: 'pie',
-    //     data: {
-    //       labels: ['WhatsApp', 'Facebook', 'Twitter', 'Instagram', 'Others'],
-    //       datasets: [{
-    //         data: [45, 25, 15, 10, 5],
-    //         backgroundColor: ['#25D366', '#1877F2', '#1DA1F2', '#E4405F', '#6B7280']
-    //       }]
-    //     },
-    //     options: {
-    //       responsive: true,
-    //       maintainAspectRatio: false
-    //     }
-    //   });
-    // }
+  // Initialize Bar Chart (moved OUTSIDE)
+  function initializeBarChart() {
+    if (!barChartCanvas || processedFilterDataChart.length === 0) return;
 
-    // Bar Chart for Top Performing Filters
-    if (barChartCanvas && processedFilterData.length > 0) {
-      barChart = new Chart(barChartCanvas, {
-        type: "bar",
-        data: {
-          labels: processedFilterData.map((f) => f.name || "Untitled"),
-          datasets: [
-            {
-              label: "Times Used",
-              data: processedFilterData.map((f) => f.times_used || 0),
-              backgroundColor: "#9CA3AF",
-            },
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                color: "#374151",
-              },
-            },
-            x: {
-              ticks: {
-                color: "#374151",
-              },
-            },
+    if (barChart) barChart.destroy();
+
+    barChart = new Chart(barChartCanvas, {
+      type: "bar",
+      data: {
+        labels: processedFilterDataChart.map((f) => f.name),
+        datasets: [
+          {
+            label: "Times Used",
+            data: processedFilterDataChart.map((f) => f.times_used),
+            backgroundColor: "#9CA3AF",
           },
-          plugins: {
-            legend: {
-              labels: {
-                color: "#374151",
-              },
-            },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { color: "#374151" },
+          },
+          x: {
+            ticks: { color: "#374151" },
           },
         },
-      });
-    }
+        plugins: {
+          legend: { labels: { color: "#374151" } },
+        },
+      },
+    });
   }
 
-  // Call the API when component mounts
+  // Empty wrapper now unnecessary, but keep if you plan to add pie chart later
+  function initializeCharts() {
+    initializeBarChart();
+  }
+
+  // Call on mount
   onMount(async () => {
     console.log("🚀 Dashboard component mounted, loading data...");
 
-    // Always load fresh data - no caching on refresh
-    // This prevents artificial stat increments while allowing real refreshes
     await loadFilterUsageData();
     await loadFiltersForUsageData();
+    await loadTopFilterUsage();
 
     // Initialize charts after data is loaded
-    setTimeout(initializeCharts, 100);
+    setTimeout(() => {
+      initializeBarChart(); // ✔ No error now
+    }, 100);
   });
 </script>
 
