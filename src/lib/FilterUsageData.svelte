@@ -95,13 +95,36 @@
 
 <style>
   .dashboard-container {
-    background: #ffffff;
+    background: #fff;
     border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     padding: 1.5rem;
-    width: 100%;
-    margin: 0 auto;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     border: 1px solid #e2e8f0;
+  }
+
+  .table-container {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+  }
+
+  .table-container::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .table-container::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+
+  .table-container::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+
+  .table-container::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
   }
 
   .dashboard-title {
@@ -115,8 +138,12 @@
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 1fr;
     gap: 1rem;
-    padding: 1rem 0;
+    padding: 1rem;
     border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+    position: sticky;
+    top: 0;
+    z-index: 1;
   }
 
   .header-cell {
@@ -131,7 +158,7 @@
     display: grid;
     grid-template-columns: 2fr 1fr 1fr 1fr;
     gap: 1rem;
-    padding: 1rem 0;
+    padding: 1rem;
     border-bottom: 1px solid #f3f4f6;
     align-items: center;
   }

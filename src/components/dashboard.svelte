@@ -54,7 +54,6 @@
       const userId = getUserIdFromLocalStorage();
       if (!userId) return;
 
-      // 1️⃣ Fetch API result
       const usageRes = await getClientAllFilterUsage(userId);
 
       if (!usageRes || usageRes.err) {
@@ -64,20 +63,18 @@
 
       const usageData = usageRes.result || [];
 
-      // 2️⃣ Sort by total_logs → take TOP 7
+      // Sort by total_used_count and take top 7
       const top7 = usageData
-        .sort((a, b) => Number(b.total_logs) - Number(a.total_logs))
+        .sort((a, b) => Number(b.total_used_count || 0) - Number(a.total_used_count || 0))
         .slice(0, 7);
 
-      // 3️⃣ DIRECTLY USE API DATA (no 2nd API call)
       processedFilterDataChart = top7.map((item) => ({
         name: item.name || "Untitled",
-        times_used: Number(item.total_logs) || 0,
+        times_used: Number(item.total_used_count) || 0,
         media_captured: Number(item.photo_capture_count) || 0,
       }));
 
-      console.log("🔥 Processed Chart Data:", processedFilterDataChart);
-
+      console.log("🔥 Chart Data (Dynamic):", processedFilterDataChart);
       initializeBarChart();
     } catch (err) {
       console.error("Error loading filter usage:", err);
@@ -209,33 +206,7 @@
   let barChart;
   let processedFilterDataChart = [];
 
-  // Function to load and process filter data
-  async function loadFiltersForUsageData() {
-    try {
-      const userId = getUserIdFromLocalStorage();
-      if (!userId) return;
 
-      // Import getFilters function
-      const { getFilters } = await import("../services/actions/filter.js");
-      const response = await getFilters({ search: `user:${userId}` });
-
-      if (!response.err && response.result) {
-        processedFilterDataChart = response.result.map((filter) => ({
-          name: filter.name,
-          filter_url: filter.filter_url,
-          times_used:
-            filter.times_used ||
-            filter.usage_count ||
-            Math.floor(Math.random() * 500) + 50,
-          user_stat: filter.user_stat || Math.floor(Math.random() * 200) + 20,
-          media_captured:
-            filter.media_captured || Math.floor(Math.random() * 300) + 30,
-        }));
-      }
-    } catch (error) {
-      console.error("Error loading filters for usage data:", error);
-    }
-  }
 
   // Initialize Bar Chart (moved OUTSIDE)
   function initializeBarChart() {
@@ -284,7 +255,6 @@
     console.log("🚀 Dashboard component mounted, loading data...");
 
     await loadFilterUsageData();
-    await loadFiltersForUsageData();
     await loadTopFilterUsage();
 
     // Initialize charts after data is loaded
