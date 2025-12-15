@@ -401,12 +401,15 @@
   }
 
   async function toggleFlash() {
-    // Change the flash button behavior to show additional filters modal
-    console.log("toggleFlash called - showing additional filters modal");
-    // Ensure state change happens immediately
-    setTimeout(() => {
-      showAdditionalFiltersModal = true;
-    }, 0);
+    try {
+      isFlashOn = !isFlashOn;
+      await applyFlashState();
+      console.log("Flash toggled:", isFlashOn ? "ON" : "OFF");
+    } catch (error) {
+      console.error("Error toggling flash:", error);
+      // Reset flash state if there's an error
+      isFlashOn = false;
+    }
   }
 
   // Initialize MediaPipe Face Mesh
@@ -1811,9 +1814,7 @@
         // Fallback: download media and open WhatsApp manually
         await triggerDownload();
 
-        alert(
-          "📋 Caption copied to clipboard.\n📦 Media downloaded.\n\nPlease open WhatsApp manually and attach the media — the caption is ready to paste."
-        );
+        // Removed alert to prevent unwanted popup
 
         // Open WhatsApp text-only share link
         const whatsappUrl = `https://wa.me/?text=${whatsappText}`;
@@ -1868,9 +1869,7 @@
       // Download media so user can attach in app, and inform about caption
       await triggerDownload();
 
-      alert(
-        "Caption copied to clipboard. Media downloaded. Open the app and paste the caption when you attach the media."
-      );
+      // Removed alert to prevent unwanted popup
 
       // Try opening targets to assist the user
       openWhatsApp();
