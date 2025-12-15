@@ -46,24 +46,32 @@
 
       // Load analytics
       const analyticsResponse = await getClientFilterUsage(userId);
+      console.log('Analytics Response:', analyticsResponse);
 
       if (!filtersResponse.err && filtersResponse.result) {
         filters = filtersResponse.result.map((filter) => {
           // Calculate usage stats from analytics
-          const totalFilterUsed =
-            analyticsResponse.result?.find((item) => item.type === "filterUsed")
-              ?.total_logs || 0;
-          const filterCount = filtersResponse.result.length;
-          const avgUsage =
-            filterCount > 0 ? Math.floor(totalFilterUsed / filterCount) : 0;
+          const analytics = analyticsResponse.result || [];
+          const appOpens = analytics.find((item) => item.type === "appOpen")?.total_logs || 0;
+          const mobileOpens = analytics.find((item) => item.type === "mobileOpen")?.total_logs || 0;
+          const cameraAccess = analytics.find((item) => item.type === "cameraAccess")?.total_logs || 0;
+          const photoCaptures = analytics.find((item) => item.type === "photoCapture")?.total_logs || 0;
+          const appShares = analytics.find((item) => item.type === "appShare")?.total_logs || 0;
 
           return {
             name: filter.name || "Untitled",
             created:
               new Date(filter.created_at).toLocaleDateString() || "1/1/2024",
-            uses: avgUsage + Math.floor(Math.random() * 100),
-            users: Math.floor(avgUsage * 0.7) + Math.floor(Math.random() * 50),
+            uses: appOpens,
+            users: Math.floor(appOpens * 0.7),
             filter_url: filter.filter_url,
+            analytics: {
+              appOpens,
+              mobileOpens,
+              cameraAccess,
+              photoCaptures,
+              appShares
+            }
           };
         });
 

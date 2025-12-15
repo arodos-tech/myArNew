@@ -143,16 +143,16 @@
     
     try {
       if (isMobile) {
-        await logEvent("mobile_open", getActualFilterId());
+        await logEvent("mobile_open", getActualFilterId(), currentUserId);
       } else {
-        await logEvent("desktop_open", getActualFilterId());
+        await logEvent("desktop_open", getActualFilterId(), currentUserId);
       }
     } catch (error) {
       // Logging failed silently
     }
     
-    await logEvent("openLink", getActualFilterId());
-    await logEvent("cameraAccessAttempt", getActualFilterId());
+    await logEvent("openLink", getActualFilterId(), currentUserId);
+    await logEvent("cameraAccessAttempt", getActualFilterId(), currentUserId);
 
     await startCamera();
     initializeOffscreenCanvas();
@@ -974,7 +974,7 @@
   async function capturePhoto() {
     if (isCapturing) return; // Prevent multiple simultaneous captures
 
-    await logEvent("photoCapture", getActualFilterId());
+    await logEvent("photoCapture", getActualFilterId(), currentUserId);
 
     // Add haptic feedback on supported devices for better UX
     if (navigator.vibrate) {
@@ -1201,13 +1201,13 @@
 
       // Always log "filterUsed" event with the actual filter ID
       console.log("📤 Logging filter event with ID:", actualFilterId);
-      await logEvent("filterUsed", actualFilterId);
+      await logEvent("filterUsed", actualFilterId, currentUserId);
       console.log("✅ Filter used logged with ID:", actualFilterId);
     } catch (error) {
       console.error("❌ Failed to log filter capture:", error);
       // Fallback
       try {
-        await logEvent("filterUsed", null);
+        await logEvent("filterUsed", null, currentUserId);
       } catch (fallbackError) {
         console.error("❌ Fallback filter logging also failed:", fallbackError);
       }
@@ -1222,7 +1222,7 @@
       return;
     }
     videoRecordingStartTime = Date.now();
-    await logEvent("videoRecordingStart", getActualFilterId());
+    await logEvent("videoRecordingStart", getActualFilterId(), currentUserId);
 
     try {
       recordedChunks = [];
@@ -1569,7 +1569,7 @@
 
       // Log video recording stop with duration in seconds and minutes
 
-      logEvent(`videoRecorded${durationInMinutes}min`, getActualFilterId());
+      logEvent(`videoRecorded${durationInMinutes}min`, getActualFilterId(), currentUserId);
 
       console.log("Current MediaRecorder state:", mediaRecorder.state);
       console.log("Recorded chunks so far:", recordedChunks.length);
@@ -1638,11 +1638,11 @@
       console.log(`🔑 Filter ID for ${platform} share:`, actualFilterId);
 
       // Log the specific platform share with filter ID
-      await logEvent(`${platform}Share`, actualFilterId);
+      await logEvent(`${platform}Share`, actualFilterId, currentUserId);
 
       // Also log a general share event with filter ID
       const eventType = capturedImg ? "photoShare" : "videoShare";
-      await logEvent(eventType, actualFilterId);
+      await logEvent(eventType, actualFilterId, currentUserId);
 
       console.log(
         `✅ Successfully logged ${platform} share with filter ID: ${actualFilterId}`
@@ -1668,7 +1668,7 @@
     // Log share event
     try {
       const actualFilterId = getActualFilterId();
-      await logEvent("shareOpened", actualFilterId);
+      await logEvent("shareOpened", actualFilterId, currentUserId);
       console.log(
         "✅ Logged share opened with filter ID:",
         actualFilterId
@@ -1743,8 +1743,8 @@
         // ADD THIS: Log web share with filter ID
         const actualFilterId = getActualFilterId();
         const eventType = capturedImg ? "photoShare" : "videoShare";
-        await logEvent("webShare", actualFilterId);
-        await logEvent(eventType, actualFilterId);
+        await logEvent("webShare", actualFilterId, currentUserId);
+        await logEvent(eventType, actualFilterId, currentUserId);
 
         return;
       }
@@ -1791,7 +1791,7 @@
       const whatsappText = encodeURIComponent(CAPTION);
       const openWhatsApp = async () => {
         // ADD THIS: Log WhatsApp share attempt
-        await logEvent("whatsappShare", getActualFilterId());
+        await logEvent("whatsappShare", getActualFilterId(), currentUserId);
 
         // Try Web Share API if supported
         if (
@@ -1827,7 +1827,7 @@
       // Facebook share (cannot pre-attach files; can only share a URL and text)
       const openFacebook = async () => {
         // ADD THIS: Log Facebook share attempt
-        await logEvent("facebookShare", getActualFilterId());
+        await logEvent("facebookShare", getActualFilterId(), currentUserId);
 
         const url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
           window.location.href
@@ -1842,7 +1842,7 @@
       // Instagram share (no official web share; open site/app and instruct user)
       const openInstagram = async () => {
         // ADD THIS: Log Instagram share attempt
-        await logEvent("instagramShare", getActualFilterId());
+        await logEvent("instagramShare", getActualFilterId(), currentUserId);
 
         const url = `https://www.instagram.com/`;
         if (isIOS) {
@@ -1855,7 +1855,7 @@
       // ADD THIS: Twitter share function
       const openTwitter = async () => {
         // ADD THIS: Log Twitter share attempt
-        await logEvent("twitterShare", getActualFilterId());
+        await logEvent("twitterShare", getActualFilterId(), currentUserId);
 
         const url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(CAPTION)}`;
         if (isIOS) {
@@ -2191,9 +2191,9 @@
       }
 
       if (capturedImg) {
-        await logEvent("photoShare", getActualFilterId());
+        await logEvent("photoShare", getActualFilterId(), currentUserId);
       } else if (recordedVideo) {
-        await logEvent("videoShare", getActualFilterId());
+        await logEvent("videoShare", getActualFilterId(), currentUserId);
       }
     } catch (error) {
       console.error("WhatsApp share error:", error);

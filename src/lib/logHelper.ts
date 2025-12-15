@@ -9,17 +9,23 @@ import { v4 as uuidv4 } from "uuid";
  * Always sends: user, type, timestamp, session (unique per device)
  * Optional: filter ID when a filter is used
  */
-export async function logEvent(type: string, filterId: string | null = null) {
+export async function logEvent(type: string, filterId: string | null = null, userIdParam: string | null = null) {
   try {
     // Check if we've already logged device type for this session
     const deviceLogged = localStorage.getItem('deviceTypeLogged');
     
-    let userData = localStorage.getItem("user");
     let userId: string | null = null;
 
-    if (userData) {
-      userData = JSON.parse(userData);
-      userId = (userData as any)?.id;
+    // First priority: userId from URL parameter (for cross-browser tracking)
+    if (userIdParam) {
+      userId = userIdParam;
+    } else {
+      // Second priority: localStorage user data
+      let userData = localStorage.getItem("user");
+      if (userData) {
+        userData = JSON.parse(userData);
+        userId = (userData as any)?.id;
+      }
     }
 
     // If no user exists, use or create a temporary UUID for user
