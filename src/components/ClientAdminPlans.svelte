@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Plus, CreditCard, ChevronDown } from "lucide-svelte";
   
+  export let user = null;
   let showDangerZone = false;
 </script>
 
@@ -79,8 +80,8 @@
     <h3 class="section-title">Billing information</h3>
     <div class="billing-card">
       <div class="billing-info">
-        <h4 class="billing-name">Shriram</h4>
-        <p class="billing-email">name@shriramfarmsolutions.com</p>
+        <h4 class="billing-name">{user?.name || 'User Name'}</h4>
+        <p class="billing-email">{user?.email || 'user@example.com'}</p>
       </div>
       <div class="billing-actions">
         <button class="link-btn">Billing history</button>

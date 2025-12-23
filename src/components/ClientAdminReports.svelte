@@ -13,8 +13,9 @@
 
   let selectedFilter = "Vintage";
   let lineChart, pieChart, barChart, deviceChart;
+  let activeTimeRange = 'daily';
 
-  import { getClientFilterUsage } from "/src/services/actions/dashboard.js";
+  import { getClientFilterUsage, getFilterUsageByPeriod, createTestOpenLinkData } from "/src/services/actions/dashboard.js";
 
   let filters = [];
   let loading = true;
@@ -59,6 +60,7 @@
           const appShares = analytics.find((item) => item.type === "appShare")?.total_logs || 0;
 
           return {
+            id: filter.id,
             name: filter.name || "Untitled",
             created:
               new Date(filter.created_at).toLocaleDateString() || "1/1/2024",
@@ -92,8 +94,17 @@
     }
   }
 
-  // Adjustable data
+  // Dynamic device data based on filter
   let deviceData = { mobile: 65, desktop: 25, tablet: 10 };
+  
+  // Device data for different filters
+  const filterDeviceData = {
+    "Vintage": { mobile: 65, desktop: 25, tablet: 10 },
+    "Black & White": { mobile: 45, desktop: 40, tablet: 15 },
+    "Sepia": { mobile: 80, desktop: 15, tablet: 5 },
+    "Modern": { mobile: 70, desktop: 20, tablet: 10 },
+    "Classic": { mobile: 55, desktop: 35, tablet: 10 }
+  };
   let peakUsageData = [
     { time: "9 AM", percentage: 60 },
     { time: "12 PM", percentage: 80 },
@@ -111,6 +122,11 @@
 
   onMount(async () => {
     Chart.register(...registerables);
+    
+    // Register Chart.js datalabels plugin
+    if (window.ChartDataLabels) {
+      Chart.register(window.ChartDataLabels);
+    }
 
     // Load real filter data first
     await loadFilterData();
@@ -123,10 +139,11 @@
         labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
         datasets: [
           {
-            label: "Usage",
+            label: "Usages",
             data: [65, 85, 95, 120, 135, 210, 175],
             borderColor: "#3b82f6",
-            backgroundColor: "transparent",
+            backgroundColor: "rgba(59, 130, 246, 0.2)",
+            fill: true,
             borderWidth: 2,
             pointBackgroundColor: "#3b82f6",
             pointBorderColor: "#3b82f6",
@@ -138,23 +155,29 @@
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        plugins: { 
+          legend: { 
+            display: true,
+            position: 'top'
+          } 
+        },
         scales: {
           y: {
             beginAtZero: true,
-            max: 260,
+            max: 50,
             grid: {
               color: "#e5e7eb",
               borderDash: [2, 2],
             },
             ticks: {
-              stepSize: 65,
+              stepSize: 10,
               color: "#6b7280",
             },
           },
           x: {
             grid: {
-              display: false,
+              display: true,
+              color: "rgba(59, 130, 246, 0.1)",
             },
             ticks: {
               color: "#6b7280",
@@ -228,63 +251,341 @@
 
     // Peak Usage Chart
     const peakUsageCtx = document.getElementById("peakUsageChart");
-    new Chart(peakUsageCtx, {
+    window.peakChart = new Chart(peakUsageCtx, {
       type: "bar",
       data: {
-        labels: peakUsageData.map((item) => item.time),
-        datasets: [
-          {
-            data: peakUsageData.map((item) => item.percentage),
-            backgroundColor: "#3b82f6",
-            borderRadius: 12,
-            barThickness: 16,
-          },
-        ],
+        labels: [],
+        datasets: [{
+          data: [],
+          backgroundColor: "#3b82f6",
+          borderRadius: 4,
+          barThickness: 12,
+        }],
       },
       options: {
         indexAxis: "y",
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
+        plugins: { 
           legend: { display: false },
-          tooltip: { enabled: false },
+          datalabels: {
+            anchor: 'end',
+            align: 'right',
+            color: 'white',
+            font: { weight: 'bold', size: 10 },
+            formatter: (value) => value
+          }
         },
         scales: {
-          x: {
-            display: false,
-            max: 100,
-          },
+          x: { display: false },
           y: {
             grid: { display: false },
-            ticks: {
-              color: "#666",
-              font: { size: 9 },
-            },
+            ticks: { color: "#666", font: { size: 10 } },
           },
         },
-        layout: {
-          padding: { left: 10, right: 10 },
-        },
-        plugins: [
-          {
-            afterDatasetsDraw: (chart) => {
-              const { ctx } = chart;
-              chart.data.datasets.forEach((dataset, i) => {
-                const meta = chart.getDatasetMeta(i);
-                meta.data.forEach((bar, index) => {
-                  const data = dataset.data[index];
-                  ctx.fillStyle = "white";
-                  ctx.font = "bold 10px sans-serif";
-                  ctx.textAlign = "center";
-                  ctx.fillText(`${data}%`, bar.x - 15, bar.y + 3);
-                });
-              });
-            },
-          },
-        ],
       },
     });
   });
+
+  async function updateTimeRange(range) {
+    activeTimeRange = range;
+    
+    if (selectedFilter) {
+      await updateChartForFilter(selectedFilter, range);
+    }
+  }
+
+  let currentTrendData = [];
+
+  async function updateChartForFilter(filterName, period = activeTimeRange) {
+    const selectedFilterObj = filters.find(f => f.name === filterName);
+    
+    // Update device data based on selected filter
+    deviceData = filterDeviceData[filterName] || filterDeviceData["Vintage"];
+    
+    // Update device chart
+    if (deviceChart) {
+      deviceChart.data.datasets[0].data = [deviceData.mobile, deviceData.desktop, deviceData.tablet];
+      deviceChart.update();
+    }
+    
+    try {
+      const userId = getUserIdFromLocalStorage();
+      console.log('Updating chart for:', filterName, 'Period:', period, 'User:', userId, 'Filter ID:', selectedFilterObj?.id);
+      
+      if (userId && selectedFilterObj?.id) {
+        const response = await getFilterUsageByPeriod(userId, selectedFilterObj.id, period);
+        console.log('API Response:', response);
+        
+        if (response && !response.err && response.result && response.result.length > 0) {
+          currentTrendData = response.result;
+          const { labels, data } = formatChartData(response, period);
+          const maxValue = Math.max(...data);
+          lineChart.data.labels = labels;
+          lineChart.data.datasets[0].data = data;
+          
+          // Update Y-axis scale
+          if (maxValue === 0) {
+            lineChart.options.scales.y.max = 10;
+            lineChart.options.scales.y.ticks.stepSize = 2;
+          } else if (maxValue <= 20) {
+            lineChart.options.scales.y.max = 20;
+            lineChart.options.scales.y.ticks.stepSize = 5;
+          } else {
+            lineChart.options.scales.y.max = Math.ceil(maxValue / 20) * 20;
+            lineChart.options.scales.y.ticks.stepSize = 20;
+          }
+          
+          const totalUsages = data.reduce((sum, val) => sum + val, 0);
+          document.getElementById('totalUsages').textContent = totalUsages;
+          console.log('Using real data:', { labels, data });
+        } else {
+          console.log('No real data found, using sample data');
+          const sampleData = getSampleData(period);
+          lineChart.data.labels = sampleData.labels;
+          lineChart.data.datasets[0].data = sampleData.data;
+          const totalUsages = sampleData.data.reduce((sum, val) => sum + val, 0);
+          document.getElementById('totalUsages').textContent = totalUsages;
+        }
+      } else {
+        console.log('Missing user or filter, using sample data');
+        const sampleData = getSampleData(period);
+        lineChart.data.labels = sampleData.labels;
+        lineChart.data.datasets[0].data = sampleData.data;
+        const totalUsages = sampleData.data.reduce((sum, val) => sum + val, 0);
+        document.getElementById('totalUsages').textContent = totalUsages;
+      }
+    } catch (error) {
+      console.error('Error updating chart:', error);
+      // For debugging, let's use your actual data structure
+      const testData = {
+        err: false,
+        result: [
+          { timestamp: "2025-12-17T16:07:44.099Z" },
+          { timestamp: "2025-12-17T16:07:12.167Z" },
+          { timestamp: "2025-12-17T16:00:52.145Z" },
+          { timestamp: "2025-12-16T14:53:19.992Z" },
+          { timestamp: "2025-12-15T13:52:32.568Z" },
+          { timestamp: "2025-12-15T09:47:42.294Z" },
+          { timestamp: "2025-12-15T08:22:11.902Z" }
+        ]
+      };
+      const { labels, data } = formatChartData(testData, period);
+      lineChart.data.labels = labels;
+      lineChart.data.datasets[0].data = data;
+      console.log('Using test data:', { labels, data });
+    }
+    
+    lineChart.update();
+    // Update peak usage chart
+    if (window.peakChart) {
+      const peakData = transformToPeakUsage(currentTrendData);
+      window.peakChart.data.labels = peakData.map(d => d.time);
+      window.peakChart.data.datasets[0].data = peakData.map(d => d.usage);
+      window.peakChart.update();
+    }
+  }
+  
+  function formatChartData(data, period) {
+    if (!data || !data.result) return { labels: [], data: [] };
+    
+    // Check if data has date/count structure
+    if (data.result[0] && data.result[0].date && data.result[0].count !== undefined) {
+      if (period === 'monthly') {
+        const monthlyData = {};
+        data.result.forEach(item => {
+          const date = new Date(item.date);
+          const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+          monthlyData[monthName] = (monthlyData[monthName] || 0) + item.count;
+        });
+        
+        const allMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        
+        return {
+          labels: allMonths,
+          data: allMonths.map(month => monthlyData[month] || 0)
+        };
+      }
+    }
+    
+    const timestamps = data.result.map(item => new Date(item.timestamp || item.date));
+    
+    if (period === 'daily') {
+      const now = new Date();
+      const last12Hours = timestamps.filter(date => {
+        const hoursDiff = (now - date) / (1000 * 60 * 60);
+        return hoursDiff <= 12;
+      });
+      
+      const hourlyData = {};
+      last12Hours.forEach(date => {
+        const timeStr = date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const key = `${timeStr} ${dateStr}`;
+        hourlyData[key] = (hourlyData[key] || 0) + 1;
+      });
+      
+      const sortedEntries = Object.entries(hourlyData).sort((a, b) => {
+        const [hourA] = a[0].split(' ');
+        const [hourB] = b[0].split(' ');
+        return parseInt(hourA) - parseInt(hourB);
+      });
+      
+      return {
+        labels: sortedEntries.map(([key]) => key),
+        data: sortedEntries.map(([, count]) => count)
+      };
+    } else if (period === 'weekly') {
+      // Handle weekly data with date and count structure
+      if (data.result[0] && data.result[0].date && data.result[0].count !== undefined) {
+        const now = new Date();
+        const last7Days = data.result.filter(item => {
+          const itemDate = new Date(item.date);
+          const daysDiff = (now - itemDate) / (1000 * 60 * 60 * 24);
+          return daysDiff <= 7;
+        });
+        
+        const weeklyData = {};
+        last7Days.forEach(item => {
+          const date = new Date(item.date);
+          const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+          weeklyData[dayName] = item.count;
+        });
+        
+        const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        
+        return {
+          labels: daysOfWeek,
+          data: daysOfWeek.map(day => weeklyData[day] || 0)
+        };
+      } else {
+        // Fallback for timestamp-only data
+        const weeklyData = {};
+        timestamps.forEach(date => {
+          const weekStart = new Date(date);
+          weekStart.setDate(date.getDate() - date.getDay());
+          const weekKey = weekStart.toISOString().split('T')[0];
+          weeklyData[weekKey] = (weeklyData[weekKey] || 0) + 1;
+        });
+        
+        const weeks = Object.keys(weeklyData).sort().reverse().slice(0, 4);
+        return {
+          labels: weeks.map(week => `Week ${weeks.indexOf(week) + 1}`),
+          data: weeks.map(week => weeklyData[week])
+        };
+      }
+    } else {
+      const monthlyData = {};
+      timestamps.forEach(date => {
+        const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+        monthlyData[monthName] = (monthlyData[monthName] || 0) + 1;
+      });
+      
+      const allMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      
+      return {
+        labels: allMonths,
+        data: allMonths.map(month => monthlyData[month] || 0)
+      };
+    }
+  }
+  
+  function transformToPeakUsage(data) {
+    console.log('Transform Peak Usage Data:', data);
+    if (!data || data.length === 0) return [];
+    
+    const hourlyUsage = {};
+    
+    data.forEach(point => {
+      const hour = new Date(point.timestamp).getHours();
+      console.log('Timestamp:', point.timestamp, 'Hour:', hour);
+      hourlyUsage[hour] = (hourlyUsage[hour] || 0) + 1;
+    });
+    
+    console.log('Hourly Usage:', hourlyUsage);
+    
+    const peakHours = [
+      { time: '10 AM', hour: 10 },
+      { time: '11 AM', hour: 11 },
+      { time: '1 PM', hour: 13 },
+      { time: '6 PM', hour: 18 },
+      { time: '10 PM', hour: 22 }
+    ];
+    
+    const maxUsage = Math.max(...Object.values(hourlyUsage), 1);
+    
+    return peakHours.map(({ time, hour }) => ({
+      time,
+      usage: hourlyUsage[hour] || 0,
+      width: Math.max(15, ((hourlyUsage[hour] || 0) / maxUsage) * 80)
+    }));
+  }
+
+  function getSampleData(period) {
+    const selectedFilterObj = filters.find(f => f.name === selectedFilter);
+    const filterIndex = filters.findIndex(f => f.name === selectedFilter);
+    
+    // Different patterns for each filter
+    const patterns = {
+      daily: [
+        [12, 19, 8, 15, 25, 32, 18],   // Filter 1
+        [5, 12, 18, 22, 15, 8, 10],    // Filter 2  
+        [25, 30, 15, 35, 40, 45, 28],  // Filter 3
+        [8, 15, 12, 18, 20, 25, 14],   // Filter 4
+        [35, 42, 28, 50, 55, 60, 38]   // Filter 5
+      ],
+      weekly: [
+        [85, 120, 95, 140],
+        [45, 65, 55, 80], 
+        [150, 180, 125, 200],
+        [70, 95, 80, 110],
+        [200, 240, 180, 280]
+      ],
+      monthly: [
+        [320, 450, 280, 520, 380, 610],
+        [180, 250, 150, 290, 210, 340],
+        [500, 650, 420, 750, 580, 880],
+        [280, 380, 240, 420, 320, 520],
+        [650, 800, 550, 950, 720, 1100]
+      ]
+    };
+    
+    const patternIndex = Math.min(filterIndex, patterns.daily.length - 1);
+    
+    if (period === 'daily') {
+      return {
+        labels: ["9 AM", "12 PM", "3 PM", "6 PM", "9 PM", "12 AM", "3 AM"],
+        data: patterns.daily[patternIndex] || patterns.daily[0]
+      };
+    } else if (period === 'weekly') {
+      return {
+        labels: ["Week 1", "Week 2", "Week 3", "Week 4"],
+        data: patterns.weekly[patternIndex] || patterns.weekly[0]
+      };
+    } else {
+      return {
+        labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+        data: patterns.monthly[patternIndex] || patterns.monthly[0]
+      };
+    }
+  }
+  
+  async function createTestData() {
+    try {
+      const userId = getUserIdFromLocalStorage();
+      const selectedFilterObj = filters.find(f => f.name === selectedFilter);
+      
+      if (userId && selectedFilterObj?.id) {
+        await createTestOpenLinkData(userId, selectedFilterObj.id);
+        alert('Test data created! Click on the filter again to see the chart update.');
+      } else {
+        alert('Please select a filter first.');
+      }
+    } catch (error) {
+      console.error('Error creating test data:', error);
+      alert('Error creating test data.');
+    }
+  }
 </script>
 
 <div class="container">
@@ -310,7 +611,10 @@
       {#each filters as filter}
         <div
           class="filter-card {selectedFilter === filter.name ? 'active' : ''}"
-          on:click={() => (selectedFilter = filter.name)}
+          on:click={() => {
+            selectedFilter = filter.name;
+            updateChartForFilter(filter.name);
+          }}
         >
           <div class="filter-thumbnail">
             <img
@@ -361,6 +665,7 @@
             </div>
           </div>
           <div style="display: flex; gap: 4px;">
+            <button class="btn btn-secondary" on:click={createTestData}>Create Test Data</button>
             <button class="btn btn-secondary">Export</button>
             <button class="btn btn-secondary">Edit</button>
             <button class="btn" style="background: #ffebee; color: #c62828;"
@@ -410,11 +715,17 @@
             Usage Trend
           </h3>
           <div class="tab-buttons">
-            <button class="tab-btn active">Daily</button>
-            <button class="tab-btn">Weekly</button>
-            <button class="tab-btn">Monthly</button>
+            <button class="tab-btn {activeTimeRange === 'daily' ? 'active' : ''}" on:click={() => updateTimeRange('daily')}>Daily</button>
+            <button class="tab-btn {activeTimeRange === 'weekly' ? 'active' : ''}" on:click={() => updateTimeRange('weekly')}>Weekly</button>
+            <button class="tab-btn {activeTimeRange === 'monthly' ? 'active' : ''}" on:click={() => updateTimeRange('monthly')}>Monthly</button>
           </div>
           <canvas id="lineChart"></canvas>
+          <div class="chart-summary">
+            <div class="summary-item">
+              <span class="summary-label">Total Usages:</span>
+              <span class="summary-value" id="totalUsages">0</span>
+            </div>
+          </div>
         </div>
 
         <!-- Sharing Breakdown -->
@@ -666,8 +977,8 @@
     max-height: 120px;
   }
   #peakUsageChart {
-    height: 140px !important;
-    max-height: 140px;
+    height: 180px !important;
+    max-height: 180px;
   }
   #lineChart {
     height: 300px !important;
@@ -985,6 +1296,32 @@
     color: #6b7280;
   }
 
+  .chart-summary {
+    margin-top: 16px;
+    padding: 12px;
+    background: #f9fafb;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+  }
+
+  .summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .summary-label {
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 500;
+  }
+
+  .summary-value {
+    font-size: 16px;
+    color: #1f2937;
+    font-weight: 600;
+  }
+
   @media (max-width: 1200px) {
     .analytics {
       grid-template-columns: repeat(2, 1fr);
@@ -1041,5 +1378,42 @@
     .device-summary {
       gap: 20px;
     }
+  }
+
+  .peak-usage {
+    font-family: Arial, sans-serif;
+    padding: 16px;
+  }
+  
+  .peak-usage h3 {
+    margin: 0 0 12px 0;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  
+  .peak-usage .legend {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  
+  .peak-usage .usage-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  
+  .peak-usage .time {
+    font-size: 10px;
+    font-weight: 500;
+  }
+  
+  .peak-usage .usage-number {
+    font-size: 10px;
+    font-weight: 600;
+    color: #1f2937;
   }
 </style>

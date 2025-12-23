@@ -30,23 +30,43 @@
       console.log("📌 User ID:", userId);
 
       // --- Load analytics directly ---
-      const { getClientAllFilterUsage } = await import(
+      const { getClientAllFilterUsage, getFilterSessionsCount } = await import(
         "/src/services/actions/dashboard.js"
       );
 
       const analyticsResponse = await getClientAllFilterUsage(userId);
+      const sessionsResponse = await getFilterSessionsCount(userId);
 
       console.log("📌 Filter Usage Response:", analyticsResponse);
+      console.log("📌 Sessions Count Response:", sessionsResponse);
+
+      // Create a map of filter names to session counts
+      const sessionCountMap = {};
+      if (sessionsResponse && sessionsResponse.result) {
+        sessionsResponse.result.forEach(item => {
+          const filterName = item.name || "Untitled Filter";
+          sessionCountMap[filterName] = item.unique_sessions || 0;
+        });
+      }
+
+      console.log("📌 Session Count Map:", sessionCountMap);
 
       // Assign real data
-      filterUsageData = analyticsResponse.result.map((item) => ({
-        name: item.name || "Untitled Filter",
-        times_used: item.total_used_count ? Number(item.total_used_count) : 0,
-        user_stat: 0, // static for now
-        media_captured: item.photo_capture_count
-          ? Number(item.photo_capture_count)
-          : 0,
-      }));
+      filterUsageData = analyticsResponse.result.map((item) => {
+        const filterName = item.name || "Untitled Filter";
+        const sessionCount = sessionCountMap[filterName] || 0;
+        
+        console.log(`📌 Mapping ${filterName}: ${sessionCount} sessions`);
+        
+        return {
+          name: filterName,
+          times_used: item.total_used_count ? Number(item.total_used_count) : 0,
+          user_stat: sessionCount,
+          media_captured: item.photo_capture_count
+            ? Number(item.photo_capture_count)
+            : 0,
+        };
+      });
 
       console.log("📌 Final filterUsageData:", filterUsageData);
     } catch (error) {

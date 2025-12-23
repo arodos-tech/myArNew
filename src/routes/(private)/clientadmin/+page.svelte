@@ -192,7 +192,7 @@
           {/if}
 
           {#if activeSection === "plans"}
-            <ClientAdminPlans />
+            <ClientAdminPlans {user} />
           {/if}
 
           {#if showProfile}

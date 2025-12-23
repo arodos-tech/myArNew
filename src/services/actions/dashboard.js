@@ -32,15 +32,104 @@ export async function getClientAllFilterUsage(user) {
   return response;
 }
 
-export async function logMobileAccess(user, type = 'mobile_open') {
+
+export async function getFilterUsageByPeriod(user, filterId, period = 'daily') {
+  let sql;
+  let endpoint;
+
+  switch (period) {
+    case 'daily':
+      sql = "SELECT timestamp FROM log_datas WHERE user = ? AND filter = ? AND type = 'openLink' ORDER BY timestamp DESC";
+      endpoint = "/filter-usage-daily";
+      break;
+    case 'weekly':
+      sql = "SELECT DATE(timestamp) as date, COUNT(*) as count FROM log_datas WHERE user = ? AND filter = ? AND type = 'openLink' GROUP BY DATE(timestamp) ORDER BY date DESC";
+      endpoint = "/filter-usage-weekly";
+      break;
+    case 'monthly':
+      sql = "SELECT DATE(timestamp) as date, COUNT(*) as count FROM log_datas WHERE user = ? AND filter = ? AND type = 'openLink' GROUP BY DATE(timestamp) ORDER BY date DESC";
+      endpoint = "/filter-usage-monthly";
+      break;
+  }
+
+  const response = await Api.sql(endpoint, {
+    body: { sql, params: [user, filterId] }
+  });
+  return response;
+}
+
+export async function getFilterDailyUsage(user, filterId) {
+  return getFilterUsageByPeriod(user, filterId, 'daily');
+}
+
+export async function createTestOpenLinkData(user, filterId) {
+  const events = [];
+
+  // Create 7 days of test data
+  for (let i = 0; i < 7; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+
+    const count = Math.floor(Math.random() * 10) + 1; // 1-10 events per day
+
+    for (let j = 0; j < count; j++) {
+      events.push({
+        user: user,
+        filter: filterId,
+        type: "openLink",
+        timestamp: date.toISOString(),
+        session: `session_${Date.now()}_${j}`
+      });
+    }
+  }
+
+  // Insert all events
+  for (const event of events) {
+    await Api.post("/log-datas", { body: event });
+  }
+
+  return { success: true, count: events.length };
+}
+
+export async function getDeviceAnalytics(filterId) {
+  const response = await Api.sql("/filter-device-stats", {
+    body: {
+      sql: "SELECT type, COUNT(*) as count FROM log_datas WHERE filter = ? AND type IN ('mobile_open', 'desktop_open') GROUP BY type",
+      params: [filterId]
+    }
+  });
+  return response;
+}
+
+export async function trackDeviceUsage(userId, filterId, deviceType, sessionId = null) {
+  const type = deviceType === 'mobile' ? 'mobile_open' : 'desktop_open';
   const response = await Api.post("/log-datas", {
     body: {
-      user: user,
+      user: userId,
+      filter: filterId,
+      session: sessionId || `${deviceType}_${Date.now()}`,
       type: type,
-      timestamp: new Date().toISOString(),
-      session: 'mobile_session',
-      filter: null
-    },
+      timestamp: new Date().toISOString()
+    }
+  });
+  return response;
+}
+
+export async function getFilterUsersCount() {
+  const response = await Api.sql("/filter-users-count", {
+    body: {
+      sql: "SELECT f.id, f.name, COUNT(DISTINCT ld.user) as unique_users FROM filters f LEFT JOIN log_datas ld ON f.id = ld.filter GROUP BY f.id, f.name ORDER BY unique_users DESC"
+    }
+  });
+  return response;
+}
+
+export async function getFilterSessionsCount(userId) {
+  const response = await Api.sql("/filter-sessions-count", {
+    body: {
+      sql: "SELECT f.id, f.name, COUNT(DISTINCT ld.session) as unique_sessions FROM filters f LEFT JOIN log_datas ld ON f.id = ld.filter WHERE f.user = ? GROUP BY f.id, f.name ORDER BY unique_sessions DESC",
+      params: [userId]
+    }
   });
   return response;
 }
