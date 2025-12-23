@@ -481,8 +481,8 @@
     }
 
     lineChart.update();
-    // Update peak usage chart
-    if (window.peakChart) {
+    // Peak usage chart stays the same for all time periods
+    if (window.peakChart && period === 'daily') {
       const peakData = transformToPeakUsage(currentTrendData);
       window.peakChart.data.labels = peakData.map((d) => d.time);
       window.peakChart.data.datasets[0].data = peakData.map((d) => d.usage);
@@ -575,6 +575,18 @@
         data.result[0].count !== undefined
       ) {
         const now = new Date();
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        startOfWeek.setHours(0, 0, 0, 0);
+        
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
+        
+        const currentWeek = data.result.filter((item) => {
+          const itemDate = new Date(item.date);
+          return itemDate >= startOfWeek && itemDate <= endOfWeek;
+        });
         const last7Days = data.result.filter((item) => {
           const itemDate = new Date(item.date);
           const daysDiff = (now - itemDate) / (1000 * 60 * 60 * 24);
@@ -582,7 +594,7 @@
         });
 
         const weeklyData = {};
-        last7Days.forEach((item) => {
+        currentWeek.forEach((item) => {
           const date = new Date(item.date);
           const dayName = date.toLocaleDateString("en-US", {
             weekday: "short",
