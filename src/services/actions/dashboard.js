@@ -133,3 +133,13 @@ export async function getFilterSessionsCount(userId) {
   });
   return response;
 }
+
+export async function getShareOpenedCount(filterId) {
+  const response = await Api.sql("/filter-share-count", {
+    body: {
+      sql: "SELECT COUNT(*) as share_opened_count FROM log_datas WHERE filter = ? AND type = 'shareOpened'",
+      params: [filterId]
+    }
+  });
+  return response;
+}

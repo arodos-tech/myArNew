@@ -382,14 +382,44 @@
         }
       }
 
-      if (response && response.err) {
-        if (response.err.includes('401') || response.err.includes('Unauthorized')) {
-          error = "Authentication failed. Please log in again.";
-        } else {
-          error = "Failed to load filters. Please try again.";
+      // Load analytics data for real filters
+      if (filters_found.length > 0) {
+        try {
+          const { getClientAllFilterUsage, getFilterSessionsCount } = await import(
+            "/src/services/actions/dashboard.js"
+          );
+
+          const analyticsResponse = await getClientAllFilterUsage(user.id);
+          const sessionsResponse = await getFilterSessionsCount(user.id);
+
+          // Create session count map
+          const sessionCountMap = {};
+          if (sessionsResponse && sessionsResponse.result) {
+            sessionsResponse.result.forEach(item => {
+              const filterName = item.name || "Untitled Filter";
+              sessionCountMap[filterName] = item.unique_sessions || 0;
+            });
+          }
+
+          // Update filters with real analytics data using same logic as FilterUsageData
+          filters_found = filters_found.map(filter => {
+            const filterName = filter.name || "Untitled Filter";
+            
+            // Find matching analytics data
+            const analyticsItem = analyticsResponse.result?.find(item => 
+              (item.name || "Untitled Filter") === filterName
+            );
+            
+            return {
+              ...filter,
+              user_stat: sessionCountMap[filterName] || 0, // USERS
+              chart_stat: analyticsItem ? Number(analyticsItem.total_used_count || 0) : 0 // TIMES USED
+            };
+          });
+        } catch (analyticsError) {
+          console.warn("Failed to load analytics data:", analyticsError);
+          // Continue with filters but without analytics
         }
-        console.error("API Error:", response.err);
-        return;
       }
 
       // Add sample data for demonstration if no real filters found

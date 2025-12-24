@@ -20,10 +20,49 @@
     getFilterUsageByPeriod,
     createTestOpenLinkData,
     getDeviceAnalytics,
+    getShareOpenedCount,
   } from "/src/services/actions/dashboard.js";
 
   let filters = [];
   let loading = true;
+  let shareCount = 0;
+
+  // Function to get user name from localStorage
+  function getUserNameFromLocalStorage() {
+    try {
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        const user = JSON.parse(userData);
+        return user.name || "Client Admin";
+      }
+      return "Client Admin";
+    } catch (err) {
+      return "Client Admin";
+    }
+  }
+
+  // Function to get selected filter's shares
+  function getSelectedFilterShares() {
+    return shareCount.toLocaleString();
+  }
+
+  // Function to get selected filter's uses
+  function getSelectedFilterUses() {
+    const selectedFilterObj = filters.find((f) => f.name === selectedFilter);
+    return selectedFilterObj?.uses?.toLocaleString() || "0";
+  }
+
+  // Function to get selected filter's users
+  function getSelectedFilterUsers() {
+    const selectedFilterObj = filters.find((f) => f.name === selectedFilter);
+    return selectedFilterObj?.users?.toLocaleString() || "0";
+  }
+
+  // Function to get selected filter's created date
+  function getSelectedFilterCreatedDate() {
+    const selectedFilterObj = filters.find((f) => f.name === selectedFilter);
+    return selectedFilterObj?.created || "1/12/2024";
+  }
 
   // Function to get user ID from localStorage
   function getUserIdFromLocalStorage() {
@@ -50,43 +89,39 @@
       const { getFilters } = await import("../services/actions/filter.js");
       const filtersResponse = await getFilters({ search: `user:${userId}` });
 
-      // Load analytics
-      const analyticsResponse = await getClientFilterUsage(userId);
-      console.log("Analytics Response:", analyticsResponse);
+      // Load analytics data using same source as FilterUsageData
+      const { getClientAllFilterUsage, getFilterSessionsCount } = await import(
+        "/src/services/actions/dashboard.js"
+      );
+
+      const analyticsResponse = await getClientAllFilterUsage(userId);
+      const sessionsResponse = await getFilterSessionsCount(userId);
+
+      // Create session count map
+      const sessionCountMap = {};
+      if (sessionsResponse && sessionsResponse.result) {
+        sessionsResponse.result.forEach(item => {
+          const filterName = item.name || "Untitled Filter";
+          sessionCountMap[filterName] = item.unique_sessions || 0;
+        });
+      }
 
       if (!filtersResponse.err && filtersResponse.result) {
         filters = filtersResponse.result.map((filter) => {
-          // Calculate usage stats from analytics
-          const analytics = analyticsResponse.result || [];
-          const appOpens =
-            analytics.find((item) => item.type === "appOpen")?.total_logs || 0;
-          const mobileOpens =
-            analytics.find((item) => item.type === "mobileOpen")?.total_logs ||
-            0;
-          const cameraAccess =
-            analytics.find((item) => item.type === "cameraAccess")
-              ?.total_logs || 0;
-          const photoCaptures =
-            analytics.find((item) => item.type === "photoCapture")
-              ?.total_logs || 0;
-          const appShares =
-            analytics.find((item) => item.type === "appShare")?.total_logs || 0;
-
+          const filterName = filter.name || "Untitled";
+          
+          // Find matching analytics data
+          const analyticsItem = analyticsResponse.result?.find(item => 
+            (item.name || "Untitled Filter") === filterName
+          );
+          
           return {
             id: filter.id,
-            name: filter.name || "Untitled",
-            created:
-              new Date(filter.created_at).toLocaleDateString() || "1/1/2024",
-            uses: appOpens,
-            users: Math.floor(appOpens * 0.7),
+            name: filterName,
+            created: new Date(filter.created_at).toLocaleDateString() || "1/1/2024",
+            uses: analyticsItem ? Number(analyticsItem.total_used_count || 0) : 0, // TIMES USED
+            users: sessionCountMap[filterName] || 0, // USERS
             filter_url: filter.filter_url,
-            analytics: {
-              appOpens,
-              mobileOpens,
-              cameraAccess,
-              photoCaptures,
-              appShares,
-            },
           };
         });
 
@@ -367,9 +402,26 @@
   }
 
   let currentTrendData = [];
+  let peakUsageForFilter = []; // Store peak usage data per filter
+  let currentFilterForPeak = null; // Track which filter the peak data belongs to
 
   async function updateChartForFilter(filterName, period = activeTimeRange) {
     const selectedFilterObj = filters.find((f) => f.name === filterName);
+
+    // Fetch share count for selected filter
+    if (selectedFilterObj?.id) {
+      try {
+        const shareResponse = await getShareOpenedCount(selectedFilterObj.id);
+        if (!shareResponse.err && shareResponse.result && shareResponse.result.length > 0) {
+          shareCount = shareResponse.result[0].share_opened_count || 0;
+        } else {
+          shareCount = 0;
+        }
+      } catch (error) {
+        console.error("Error fetching share count:", error);
+        shareCount = 0;
+      }
+    }
 
     // Fetch real device data for selected filter
     if (selectedFilterObj?.id) {
@@ -420,6 +472,21 @@
           response.result.length > 0
         ) {
           currentTrendData = response.result;
+          
+          // Always update peak usage data when filter changes (always use daily data for peak usage)
+          if (currentFilterForPeak !== filterName) {
+            // Get daily data for peak usage calculation
+            const dailyResponse = await getFilterUsageByPeriod(
+              userId,
+              selectedFilterObj.id,
+              'daily'
+            );
+            if (dailyResponse && !dailyResponse.err && dailyResponse.result) {
+              peakUsageForFilter = transformToPeakUsage(dailyResponse.result);
+            }
+            currentFilterForPeak = filterName;
+          }
+          
           const { labels, data } = formatChartData(response, period);
           const maxValue = Math.max(...data);
           lineChart.data.labels = labels;
@@ -481,11 +548,11 @@
     }
 
     lineChart.update();
-    // Peak usage chart stays the same for all time periods
-    if (window.peakChart && period === 'daily') {
-      const peakData = transformToPeakUsage(currentTrendData);
-      window.peakChart.data.labels = peakData.map((d) => d.time);
-      window.peakChart.data.datasets[0].data = peakData.map((d) => d.usage);
+    
+    // Update peak usage chart only with stored data for this filter
+    if (window.peakChart && peakUsageForFilter.length > 0) {
+      window.peakChart.data.labels = peakUsageForFilter.map((d) => d.time);
+      window.peakChart.data.datasets[0].data = peakUsageForFilter.map((d) => d.usage);
       window.peakChart.update();
     }
   }
@@ -754,6 +821,27 @@
       alert("Error creating test data.");
     }
   }
+
+  function exportToPDF() {
+    window.print();
+  }
+
+  function exportToCSV() {
+    const selectedFilterObj = filters.find((f) => f.name === selectedFilter);
+    const csvData = [
+      ['Filter Name', 'Total Uses', 'Users', 'Total Shares'],
+      [selectedFilter, getSelectedFilterUses(), getSelectedFilterUsers(), shareCount || 0]
+    ];
+    
+    const csvContent = csvData.map(row => row.join(',')).join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${selectedFilter}_report.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 </script>
 
 <div class="container">
@@ -825,7 +913,7 @@
               >
             </div>
             <div style="font-size: 12px; color: #666;">
-              <p>Created by: Client Admin • Created: 1/12/2024</p>
+              <p>Created by: {getUserNameFromLocalStorage()} • Created: {getSelectedFilterCreatedDate()}</p>
               <div style="margin-top: 2px;">
                 <span>⭐⭐⭐⭐☆</span>
                 <span style="color: #999;">(4.5/5.0)</span>
@@ -849,21 +937,21 @@
           <div class="metric-item">
             <div class="metric-row">
               <TrendingUp class="metric-icon" size={16} />
-              <div class="metric-number">1,250</div>
+              <div class="metric-number">{getSelectedFilterUses()}</div>
             </div>
             <div class="metric-text">Total Uses</div>
           </div>
           <div class="metric-item">
             <div class="metric-row">
               <Users class="metric-icon" size={16} />
-              <div class="metric-number">850</div>
+              <div class="metric-number">{getSelectedFilterUsers()}</div>
             </div>
-            <div class="metric-text">Unique Users</div>
+            <div class="metric-text">Users</div>
           </div>
           <div class="metric-item">
             <div class="metric-row">
               <Share class="metric-icon" size={16} />
-              <div class="metric-number">420</div>
+              <div class="metric-number">{shareCount || 0}</div>
             </div>
             <div class="metric-text">Total Shares</div>
           </div>
@@ -982,8 +1070,8 @@
         >
           <h3 style="font-size: 14px; font-weight: 600;">Export & Share</h3>
           <div style="display: flex; gap: 12px;">
-            <button class="btn btn-primary">Export PDF</button>
-            <button class="btn btn-secondary">Export CSV</button>
+            <button class="btn btn-primary" on:click={exportToPDF}>Export PDF</button>
+            <button class="btn btn-secondary" on:click={exportToCSV}>Export CSV</button>
             <button class="btn" style="background: none; color: #2196f3;"
               >🔗 Share Link</button
             >
