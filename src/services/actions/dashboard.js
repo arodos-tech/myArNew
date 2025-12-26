@@ -143,3 +143,14 @@ export async function getShareOpenedCount(filterId) {
   });
   return response;
 }
+
+export async function updateUserProfile(userId, userData) {
+  const response = await Api.sql("/update-user-prof", {
+    body: {
+      sql: "UPDATE users SET name = ?, email = ?, subdomain = ?, prof_picture = ?, updated_at = NOW() WHERE id = ?",
+      params: [userData.name, userData.email, userData.subdomain, userData.prof_picture, userId],
+    },
+  });
+
+  return response;
+}

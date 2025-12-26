@@ -1,18 +1,34 @@
 <script lang="ts">
   import { User, Camera, Save } from "lucide-svelte";
+  import { onMount } from "svelte";
 
-  // Profile data
+  // Profile data - will be loaded from localStorage
   let profileData = {
-    firstName: "Shritam",
-    lastName: "Farm Solutions",
-    email: "john.doog@example.com",
-    subdomain: "shritam",
+    firstName: "",
+    lastName: "",
+    email: "",
+    subdomain: "",
     bio: "Create the first file and digit print of this document.",
     profileImage: null,
+    profileImageUrl: "",
   };
 
   let bioCharCount = profileData.bio.length;
   const maxBioChars = 180;
+
+  // Load user data from localStorage on mount
+  onMount(() => {
+    const userData = localStorage.getItem("user");
+    if (userData) {
+      const user = JSON.parse(userData);
+      const nameParts = (user.name || "").split(" ");
+      profileData.firstName = nameParts[0] || "";
+      profileData.lastName = nameParts.slice(1).join(" ") || "";
+      profileData.email = user.email || "";
+      profileData.subdomain = user.subdomain || "";
+      profileData.profileImageUrl = user.prof_picture || "";
+    }
+  });
 
   function handleBioChange(e: Event) {
     const target = e.target as HTMLTextAreaElement;
@@ -23,19 +39,83 @@
   function handleImageUpload(e: Event) {
     const target = e.target as HTMLInputElement;
     if (target.files && target.files[0]) {
-      profileData.profileImage = target.files[0];
+      const file = target.files[0];
+      profileData.profileImage = file;
 
+      // Compress and resize image
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // Resize to max 200x200
+        const maxSize = 200;
+        let { width, height } = img;
+        
+        if (width > height) {
+          if (width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Convert to base64 with compression
+        profileData.profileImageUrl = canvas.toDataURL('image/jpeg', 0.7);
+      };
+      
       const reader = new FileReader();
       reader.onload = (event) => {
-        // Preview logic if needed
+        img.src = event.target?.result as string;
       };
-      reader.readAsDataURL(target.files[0]);
+      reader.readAsDataURL(file);
     }
   }
 
-  function saveProfile() {
-    console.log("Saving profile:", profileData);
-    // Add your save logic here
+  async function saveProfile() {
+    try {
+      const userData = JSON.parse(localStorage.getItem("user") || "{}");
+      const userId = userData.id;
+      
+      if (!userId) {
+        alert("User not found. Please login again.");
+        return;
+      }
+
+      const updateData = {
+        name: `${profileData.firstName} ${profileData.lastName}`.trim(),
+        email: profileData.email,
+        subdomain: profileData.subdomain,
+        prof_picture: profileData.profileImageUrl
+      };
+
+      // Import and use the dashboard function
+      const { updateUserProfile } = await import("/src/services/actions/dashboard.js");
+      const response = await updateUserProfile(userId, updateData);
+      
+      if (response.err) {
+        throw new Error(response.err);
+      }
+      
+      userData.name = updateData.name;
+      userData.email = updateData.email;
+      userData.subdomain = updateData.subdomain;
+      userData.prof_picture = updateData.prof_picture;
+      localStorage.setItem("user", JSON.stringify(userData));
+      
+      alert("Profile updated successfully!");
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      alert("Error saving profile. Please try again.");
+    }
   }
 </script>
 
@@ -57,9 +137,9 @@
       <div class="profile-image-section">
         <div class="image-upload">
           <div class="image-placeholder">
-            {#if profileData.profileImage}
+            {#if profileData.profileImageUrl}
               <img
-                src={URL.createObjectURL(profileData.profileImage)}
+                src={profileData.profileImageUrl}
                 alt="Profile"
               />
             {:else}

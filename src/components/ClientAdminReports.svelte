@@ -85,22 +85,23 @@
       const userId = getUserIdFromLocalStorage();
       if (!userId) return;
 
-      // Load filters
-      const { getFilters } = await import("../services/actions/filter.js");
-      const filtersResponse = await getFilters({ search: `user:${userId}` });
-
-      // Load analytics data using same source as FilterUsageData
-      const { getClientAllFilterUsage, getFilterSessionsCount } = await import(
-        "/src/services/actions/dashboard.js"
-      );
-
-      const analyticsResponse = await getClientAllFilterUsage(userId);
-      const sessionsResponse = await getFilterSessionsCount(userId);
+      // Load filters and analytics in parallel
+      const [filtersResponse, analyticsResponse, sessionsResponse] = await Promise.all([
+        import("../services/actions/filter.js").then(({ getFilters }) => 
+          getFilters({ search: `user:${userId}` })
+        ),
+        import("/src/services/actions/dashboard.js").then(({ getClientAllFilterUsage }) => 
+          getClientAllFilterUsage(userId)
+        ),
+        import("/src/services/actions/dashboard.js").then(({ getFilterSessionsCount }) => 
+          getFilterSessionsCount(userId)
+        )
+      ]);
 
       // Create session count map
       const sessionCountMap = {};
       if (sessionsResponse && sessionsResponse.result) {
-        sessionsResponse.result.forEach(item => {
+        sessionsResponse.result.forEach((item) => {
           const filterName = item.name || "Untitled Filter";
           sessionCountMap[filterName] = item.unique_sessions || 0;
         });
@@ -109,17 +110,20 @@
       if (!filtersResponse.err && filtersResponse.result) {
         filters = filtersResponse.result.map((filter) => {
           const filterName = filter.name || "Untitled";
-          
+
           // Find matching analytics data
-          const analyticsItem = analyticsResponse.result?.find(item => 
-            (item.name || "Untitled Filter") === filterName
+          const analyticsItem = analyticsResponse.result?.find(
+            (item) => (item.name || "Untitled Filter") === filterName,
           );
-          
+
           return {
             id: filter.id,
             name: filterName,
-            created: new Date(filter.created_at).toLocaleDateString() || "1/1/2024",
-            uses: analyticsItem ? Number(analyticsItem.total_used_count || 0) : 0, // TIMES USED
+            created:
+              new Date(filter.created_at).toLocaleDateString() || "1/1/2024",
+            uses: analyticsItem
+              ? Number(analyticsItem.total_used_count || 0)
+              : 0, // TIMES USED
             users: sessionCountMap[filterName] || 0, // USERS
             filter_url: filter.filter_url,
           };
@@ -147,35 +151,35 @@
 
   // Function to fetch real device analytics
   async function fetchDeviceAnalytics(userId, filterId) {
-    console.log('fetchDeviceAnalytics called with:', { userId, filterId });
+    console.log("fetchDeviceAnalytics called with:", { userId, filterId });
     try {
       const response = await getDeviceAnalytics(filterId);
-      console.log('Device analytics response:', response);
-      
+      console.log("Device analytics response:", response);
+
       if (!response.err && response.result) {
         const deviceCounts = response.result;
         let mobileCount = 0;
         let desktopCount = 0;
         let tabletCount = 0;
-        
+
         // Process the device analytics data
-        deviceCounts.forEach(item => {
-          if (item.type === 'mobile_open') {
+        deviceCounts.forEach((item) => {
+          if (item.type === "mobile_open") {
             mobileCount = item.count;
-          } else if (item.type === 'desktop_open') {
+          } else if (item.type === "desktop_open") {
             desktopCount = item.count;
-          } else if (item.type === 'tablet_open') {
+          } else if (item.type === "tablet_open") {
             tabletCount = item.count;
           }
         });
-        
+
         const totalCount = mobileCount + desktopCount + tabletCount;
-        
+
         if (totalCount > 0) {
           const mobilePercent = Math.round((mobileCount / totalCount) * 100);
           const desktopPercent = Math.round((desktopCount / totalCount) * 100);
           const tabletPercent = Math.round((tabletCount / totalCount) * 100);
-          
+
           return {
             mobile: mobilePercent,
             desktop: desktopPercent,
@@ -183,21 +187,21 @@
             counts: {
               mobile: mobileCount,
               desktop: desktopCount,
-              tablet: tabletCount
-            }
+              tablet: tabletCount,
+            },
           };
         }
       }
     } catch (error) {
-      console.error('Error fetching device analytics:', error);
+      console.error("Error fetching device analytics:", error);
     }
-    
+
     // Fallback to default values if no data or API fails
-    return { 
-      mobile: 65, 
-      desktop: 25, 
+    return {
+      mobile: 65,
+      desktop: 25,
       tablet: 10,
-      counts: { mobile: 65, desktop: 25, tablet: 10 }
+      counts: { mobile: 65, desktop: 25, tablet: 10 },
     };
   }
   let peakUsageData = [
@@ -309,11 +313,11 @@
     deviceChart = new Chart(deviceCtx, {
       type: "bar",
       data: {
-        labels: ["Mobile", "Desktop", "Tablet"],
+        labels: ["Mobile", "Desktop"],
         datasets: [
           {
-            data: [deviceData.mobile, deviceData.desktop, deviceData.tablet],
-            backgroundColor: ["#3b82f6", "#93c5fd", "#60a5fa"],
+            data: [deviceData.mobile, deviceData.desktop],
+            backgroundColor: ["#3b82f6", "#93c5fd"],
             borderRadius: 4,
             barThickness: 12,
           },
@@ -323,15 +327,15 @@
         indexAxis: "y",
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { 
+        plugins: {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: function(context) {
-                return context.parsed.x + ' users';
-              }
-            }
-          }
+              label: function (context) {
+                return context.parsed.x + " users";
+              },
+            },
+          },
         },
         scales: {
           x: {
@@ -412,7 +416,11 @@
     if (selectedFilterObj?.id) {
       try {
         const shareResponse = await getShareOpenedCount(selectedFilterObj.id);
-        if (!shareResponse.err && shareResponse.result && shareResponse.result.length > 0) {
+        if (
+          !shareResponse.err &&
+          shareResponse.result &&
+          shareResponse.result.length > 0
+        ) {
           shareCount = shareResponse.result[0].share_opened_count || 0;
         } else {
           shareCount = 0;
@@ -439,7 +447,6 @@
       deviceChart.data.datasets[0].data = [
         deviceData.counts?.mobile || deviceData.mobile,
         deviceData.counts?.desktop || deviceData.desktop,
-        deviceData.counts?.tablet || deviceData.tablet,
       ];
       deviceChart.update();
     }
@@ -472,21 +479,21 @@
           response.result.length > 0
         ) {
           currentTrendData = response.result;
-          
+
           // Always update peak usage data when filter changes (always use daily data for peak usage)
           if (currentFilterForPeak !== filterName) {
             // Get daily data for peak usage calculation
             const dailyResponse = await getFilterUsageByPeriod(
               userId,
               selectedFilterObj.id,
-              'daily'
+              "daily",
             );
             if (dailyResponse && !dailyResponse.err && dailyResponse.result) {
               peakUsageForFilter = transformToPeakUsage(dailyResponse.result);
             }
             currentFilterForPeak = filterName;
           }
-          
+
           const { labels, data } = formatChartData(response, period);
           const maxValue = Math.max(...data);
           lineChart.data.labels = labels;
@@ -548,11 +555,13 @@
     }
 
     lineChart.update();
-    
+
     // Update peak usage chart only with stored data for this filter
     if (window.peakChart && peakUsageForFilter.length > 0) {
       window.peakChart.data.labels = peakUsageForFilter.map((d) => d.time);
-      window.peakChart.data.datasets[0].data = peakUsageForFilter.map((d) => d.usage);
+      window.peakChart.data.datasets[0].data = peakUsageForFilter.map(
+        (d) => d.usage,
+      );
       window.peakChart.update();
     }
   }
@@ -645,11 +654,11 @@
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay());
         startOfWeek.setHours(0, 0, 0, 0);
-        
+
         const endOfWeek = new Date(startOfWeek);
         endOfWeek.setDate(startOfWeek.getDate() + 6);
         endOfWeek.setHours(23, 59, 59, 999);
-        
+
         const currentWeek = data.result.filter((item) => {
           const itemDate = new Date(item.date);
           return itemDate >= startOfWeek && itemDate <= endOfWeek;
@@ -736,12 +745,15 @@
 
     // Get top 5 hours with most usage
     const sortedHours = Object.entries(hourlyUsage)
-      .sort(([,a], [,b]) => b - a)
+      .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
       .map(([hour, usage]) => ({
         time: formatHour(parseInt(hour)),
         usage: usage,
-        width: Math.max(15, (usage / Math.max(...Object.values(hourlyUsage))) * 80),
+        width: Math.max(
+          15,
+          (usage / Math.max(...Object.values(hourlyUsage))) * 80,
+        ),
       }));
 
     return sortedHours;
@@ -829,14 +841,19 @@
   function exportToCSV() {
     const selectedFilterObj = filters.find((f) => f.name === selectedFilter);
     const csvData = [
-      ['Filter Name', 'Total Uses', 'Users', 'Total Shares'],
-      [selectedFilter, getSelectedFilterUses(), getSelectedFilterUsers(), shareCount || 0]
+      ["Filter Name", "Total Uses", "Users", "Total Shares"],
+      [
+        selectedFilter,
+        getSelectedFilterUses(),
+        getSelectedFilterUsers(),
+        shareCount || 0,
+      ],
     ];
-    
-    const csvContent = csvData.map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+
+    const csvContent = csvData.map((row) => row.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `${selectedFilter}_report.csv`;
     a.click();
@@ -913,7 +930,9 @@
               >
             </div>
             <div style="font-size: 12px; color: #666;">
-              <p>Created by: {getUserNameFromLocalStorage()} • Created: {getSelectedFilterCreatedDate()}</p>
+              <p>
+                Created by: {getUserNameFromLocalStorage()} • Created: {getSelectedFilterCreatedDate()}
+              </p>
               <div style="margin-top: 2px;">
                 <span>⭐⭐⭐⭐☆</span>
                 <span style="color: #999;">(4.5/5.0)</span>
@@ -921,14 +940,14 @@
             </div>
           </div>
           <div style="display: flex; gap: 4px;">
-            <button class="btn btn-secondary" on:click={createTestData}
+            <!-- <button class="btn btn-secondary" on:click={createTestData}
               >Create Test Data</button
-            >
-            <button class="btn btn-secondary">Export</button>
+            > -->
+            <!-- <button class="btn btn-secondary">Export</button>
             <button class="btn btn-secondary">Edit</button>
             <button class="btn" style="background: #ffebee; color: #c62828;"
               >Delete</button
-            >
+            > -->
           </div>
         </div>
 
@@ -1019,11 +1038,11 @@
               <span class="legend-percent">{deviceData.desktop}%</span>
               <span class="legend-label">Desktop</span>
             </div>
-            <div class="legend-item">
+            <!-- <div class="legend-item">
               <Tablet class="legend-icon" size={16} />
               <span class="legend-percent">{deviceData.tablet}%</span>
               <span class="legend-label">Tablet</span>
-            </div>
+            </div> -->
           </div>
         </div>
 
@@ -1070,8 +1089,12 @@
         >
           <h3 style="font-size: 14px; font-weight: 600;">Export & Share</h3>
           <div style="display: flex; gap: 12px;">
-            <button class="btn btn-primary" on:click={exportToPDF}>Export PDF</button>
-            <button class="btn btn-secondary" on:click={exportToCSV}>Export CSV</button>
+            <button class="btn btn-primary" on:click={exportToPDF}
+              >Export PDF</button
+            >
+            <button class="btn btn-secondary" on:click={exportToCSV}
+              >Export CSV</button
+            >
             <button class="btn" style="background: none; color: #2196f3;"
               >🔗 Share Link</button
             >
