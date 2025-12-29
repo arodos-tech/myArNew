@@ -144,6 +144,16 @@ export async function getShareOpenedCount(filterId) {
   return response;
 }
 
+export async function getCurrentUserProfile(userId) {
+  const response = await Api.sql("/get-user-profile", {
+    body: {
+      sql: "SELECT prof_picture FROM users WHERE id = ?",
+      params: [userId]
+    }
+  });
+  return response;
+}
+
 export async function updateUserProfile(userId, userData) {
   const response = await Api.sql("/update-user-prof", {
     body: {

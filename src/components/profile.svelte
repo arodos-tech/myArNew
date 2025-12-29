@@ -17,7 +17,7 @@
   const maxBioChars = 180;
 
   // Load user data from localStorage on mount
-  onMount(() => {
+  onMount(async () => {
     const userData = localStorage.getItem("user");
     if (userData) {
       const user = JSON.parse(userData);
@@ -26,7 +26,23 @@
       profileData.lastName = nameParts.slice(1).join(" ") || "";
       profileData.email = user.email || "";
       profileData.subdomain = user.subdomain || "";
-      profileData.profileImageUrl = user.prof_picture || "";
+      
+      // Fetch fresh profile picture from server
+      try {
+        const { getCurrentUserProfile } = await import("/src/services/actions/dashboard.js");
+        const response = await getCurrentUserProfile(user.id);
+        if (response && !response.err && response.result && response.result[0]) {
+          profileData.profileImageUrl = response.result[0].prof_picture || "";
+          // Update localStorage with fresh profile picture
+          user.prof_picture = response.result[0].prof_picture;
+          localStorage.setItem("user", JSON.stringify(user));
+        } else {
+          profileData.profileImageUrl = user.prof_picture || "";
+        }
+      } catch (error) {
+        console.error("Error fetching profile picture:", error);
+        profileData.profileImageUrl = user.prof_picture || "";
+      }
     }
   });
 

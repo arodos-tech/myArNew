@@ -634,9 +634,10 @@
       });
 
       const sortedEntries = Object.entries(hourlyData).sort((a, b) => {
-        const [hourA] = a[0].split(" ");
-        const [hourB] = b[0].split(" ");
-        return parseInt(hourA) - parseInt(hourB);
+        // Parse timestamps to sort by actual time, newest first
+        const timeA = new Date(`${a[0].split(' ')[1]} ${a[0].split(' ')[0]}`);
+        const timeB = new Date(`${b[0].split(' ')[1]} ${b[0].split(' ')[0]}`);
+        return timeB - timeA; // newest first
       });
 
       return {
